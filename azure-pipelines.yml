@@ -1,0 +1,170 @@
+# Configuracion previa en Azure DevOps:
+# - Service connections ARM con federacion: sc-promptify-pre, sc-promptify-pro.
+# - Variable groups promptify-pre y promptify-pro: resourceGroup, webAppName,
+#   migrationDatabaseUrl (secreto, login DDL exclusivo de la pipeline), databaseUrl (secreto, login DML
+#   de la app, usado por el seed), firstAdministratorOid y applicationInsightsConnectionString (secreto).
+# - Environments promptify-pre y promptify-pro: Exclusive lock. promptify-pro: aprobacion manual sin autoaprobacion.
+# - App Services Linux existentes: Easy Auth obligatorio, DATABASE_URL (solo DML)
+#   y Application Insights mediante referencias a Key Vault. No se modifican aqui.
+# - Las migraciones deben ser compatibles con la version anterior mientras se despliega.
+# - Azure Repos: configurar tambien validacion de PR mediante branch policy de master (build validation).
+
+trigger:
+  branches:
+    include: [master]
+
+pr: none
+
+pool:
+  vmImage: ubuntu-24.04
+
+variables:
+  nodeVersion: '24.x'
+
+stages:
+  - stage: CI
+    jobs:
+      - job: ValidateAndPackage
+        steps:
+          - checkout: self
+            clean: true
+          - task: UseNode@1
+            inputs:
+              version: $(nodeVersion)
+          - task: Cache@2
+            displayName: Cache npm
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(Pipeline.Workspace)/.npm
+          - script: npm ci --cache $(Pipeline.Workspace)/.npm --prefer-offline --no-audit --no-fund
+            displayName: Install
+          - script: npm audit --omit=dev --audit-level=high
+            displayName: Audit (production dependencies)
+          - script: npm run lint
+            displayName: Lint
+          - script: npm run build
+            displayName: Build
+          - script: npm test -- --reporter=default --reporter=junit --outputFile.junit=$(Common.TestResultsDirectory)/unit.xml
+            displayName: Test
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
+              failTaskOnFailedTests: true
+
+          - bash: |
+              set -euo pipefail
+              # Salida standalone: server.js con solo las dependencias trazadas en produccion.
+              STAGE="$(mktemp -d)"
+              cp -r .next/standalone/. "$STAGE/"
+              mkdir -p "$STAGE/.next"
+              cp -r .next/static "$STAGE/.next/static"
+              cp -r public "$STAGE/public"
+              (cd "$STAGE" && zip -qr "$BUILD_ARTIFACTSTAGINGDIRECTORY/app.zip" .)
+            displayName: Package
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/app.zip
+              artifact: application
+
+  - stage: PRE
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+    lockBehavior: sequential
+    variables:
+      - group: promptify-pre
+    jobs:
+      - deployment: DeployPRE
+        environment: promptify-pre
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+                - download: current
+                  artifact: application
+                - task: UseNode@1
+                  inputs:
+                    version: $(nodeVersion)
+                - script: npm ci
+                  displayName: Install migration tools on agent
+                - script: npm run db:migrate
+                  displayName: Migrate PRE
+                  env:
+                    MIGRATION_DATABASE_URL: $(migrationDatabaseUrl)
+                - script: npm run db:seed
+                  displayName: Seed PRE
+                  env:
+                    DATABASE_URL: $(databaseUrl)
+                    FIRST_ADMINISTRATOR_OID: $(firstAdministratorOid)
+                    APPLICATIONINSIGHTS_CONNECTION_STRING: $(applicationInsightsConnectionString)
+                    NODE_ENV: production
+                - task: AzureCLI@2
+                  displayName: Deploy ZIP to PRE
+                  inputs:
+                    azureSubscription: sc-promptify-pre
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az webapp deploy --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" \
+                        --src-path "$PIPELINE_WORKSPACE/application/app.zip" --type zip \
+                        --clean true --restart true --track-status true --timeout 600000 \
+                        --only-show-errors --output none
+                  env:
+                    RESOURCE_GROUP: $(resourceGroup)
+                    WEB_APP: $(webAppName)
+
+  - stage: PRO
+    dependsOn: PRE
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+    lockBehavior: sequential
+    variables:
+      - group: promptify-pro
+    jobs:
+      - deployment: DeployPRO
+        # La aprobacion se configura fuera del YAML, en el environment promptify-pro.
+        environment: promptify-pro
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+                - download: current
+                  artifact: application
+                - task: UseNode@1
+                  inputs:
+                    version: $(nodeVersion)
+                - script: npm ci
+                  displayName: Install migration tools on agent
+                - script: npm run db:migrate
+                  displayName: Migrate PRO
+                  env:
+                    MIGRATION_DATABASE_URL: $(migrationDatabaseUrl)
+                - script: npm run db:seed
+                  displayName: Seed PRO
+                  env:
+                    DATABASE_URL: $(databaseUrl)
+                    FIRST_ADMINISTRATOR_OID: $(firstAdministratorOid)
+                    APPLICATIONINSIGHTS_CONNECTION_STRING: $(applicationInsightsConnectionString)
+                    NODE_ENV: production
+                - task: AzureCLI@2
+                  displayName: Deploy identical ZIP to PRO
+                  inputs:
+                    azureSubscription: sc-promptify-pro
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az webapp deploy --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" \
+                        --src-path "$PIPELINE_WORKSPACE/application/app.zip" --type zip \
+                        --clean true --restart true --track-status true --timeout 600000 \
+                        --only-show-errors --output none
+                  env:
+                    RESOURCE_GROUP: $(resourceGroup)
+                    WEB_APP: $(webAppName)

@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T10:47:02.000Z",
+  "title": "Design System: Promptify",
+  "extensions": {
+    "colorMeta": {
+      "background": { "role": "neutral", "displayName": "Midnight Ink", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "foreground": { "role": "neutral", "displayName": "Lavender Chalk", "tonalRamp": ["oklch(15% 0.01 285)", "oklch(26% 0.02 285)", "oklch(38% 0.03 285)", "oklch(50% 0.035 285)", "oklch(62% 0.03 285)", "oklch(74% 0.025 285)", "oklch(85% 0.015 285)", "oklch(95% 0.008 285)"] },
+      "muted": { "role": "neutral", "displayName": "Lavender Ash", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "accent": { "role": "primary", "displayName": "Terminal Mint", "tonalRamp": ["oklch(15% 0.025 155)", "oklch(26% 0.05 155)", "oklch(38% 0.08 155)", "oklch(50% 0.11 155)", "oklch(62% 0.12 155)", "oklch(74% 0.1 155)", "oklch(85% 0.06 155)", "oklch(95% 0.02 155)"] },
+      "accent-hover": { "role": "primary", "displayName": "Soft Mint", "tonalRamp": ["oklch(15% 0.025 155)", "oklch(26% 0.05 155)", "oklch(38% 0.08 155)", "oklch(50% 0.11 155)", "oklch(62% 0.12 155)", "oklch(74% 0.1 155)", "oklch(85% 0.06 155)", "oklch(95% 0.02 155)"] },
+      "accent-soft": { "role": "primary", "displayName": "Deep Moss", "tonalRamp": ["oklch(15% 0.025 155)", "oklch(26% 0.05 155)", "oklch(38% 0.08 155)", "oklch(50% 0.11 155)", "oklch(62% 0.12 155)", "oklch(74% 0.1 155)", "oklch(85% 0.06 155)", "oklch(95% 0.02 155)"] },
+      "border": { "role": "neutral", "displayName": "Violet Rule", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "rail": { "role": "neutral", "displayName": "Aubergine Rail", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "surface": { "role": "neutral", "displayName": "Ink Panel", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "surface-raised": { "role": "neutral", "displayName": "Raised Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "field": { "role": "neutral", "displayName": "Near-black Field", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "selection": { "role": "tertiary", "displayName": "Cartridge Butter", "tonalRamp": ["oklch(15% 0.02 88)", "oklch(26% 0.04 88)", "oklch(38% 0.07 88)", "oklch(50% 0.1 88)", "oklch(62% 0.12 88)", "oklch(74% 0.1 88)", "oklch(85% 0.07 88)", "oklch(95% 0.025 88)"] },
+      "selection-soft": { "role": "neutral", "displayName": "Muted Butter Ground", "tonalRamp": ["oklch(15% 0.02 88)", "oklch(26% 0.04 88)", "oklch(38% 0.07 88)", "oklch(50% 0.1 88)", "oklch(62% 0.12 88)", "oklch(74% 0.1 88)", "oklch(85% 0.07 88)", "oklch(95% 0.025 88)"] },
+      "danger": { "role": "tertiary", "displayName": "Coral Alert", "tonalRamp": ["oklch(15% 0.02 15)", "oklch(26% 0.04 15)", "oklch(38% 0.07 15)", "oklch(50% 0.1 15)", "oklch(62% 0.12 15)", "oklch(74% 0.1 15)", "oklch(85% 0.07 15)", "oklch(95% 0.025 15)"] },
+      "danger-soft": { "role": "neutral", "displayName": "Deep Wine", "tonalRamp": ["oklch(15% 0.02 15)", "oklch(26% 0.04 15)", "oklch(38% 0.07 15)", "oklch(50% 0.1 15)", "oklch(62% 0.12 15)", "oklch(74% 0.1 15)", "oklch(85% 0.07 15)", "oklch(95% 0.025 15)"] },
+      "action-ink": { "role": "neutral", "displayName": "Action Ink", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "field-stroke": { "role": "neutral", "displayName": "Field Violet", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "panel-stroke": { "role": "neutral", "displayName": "Panel Violet", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "secondary-stroke": { "role": "neutral", "displayName": "Secondary Stroke", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "secondary-hover": { "role": "neutral", "displayName": "Secondary Hover Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "danger-stroke": { "role": "tertiary", "displayName": "Danger Edge", "tonalRamp": ["oklch(15% 0.02 15)", "oklch(26% 0.04 15)", "oklch(38% 0.07 15)", "oklch(50% 0.1 15)", "oklch(62% 0.12 15)", "oklch(74% 0.1 15)", "oklch(85% 0.07 15)", "oklch(95% 0.025 15)"] },
+      "danger-ink": { "role": "neutral", "displayName": "Danger Ink", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "danger-hover": { "role": "tertiary", "displayName": "Danger Hover", "tonalRamp": ["oklch(15% 0.02 15)", "oklch(26% 0.04 15)", "oklch(38% 0.07 15)", "oklch(50% 0.1 15)", "oklch(62% 0.12 15)", "oklch(74% 0.1 15)", "oklch(85% 0.07 15)", "oklch(95% 0.025 15)"] },
+      "disabled-surface": { "role": "neutral", "displayName": "Disabled Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "navigation-link": { "role": "neutral", "displayName": "Navigation Lavender", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "discovery-surface": { "role": "neutral", "displayName": "Discovery Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "discovery-label": { "role": "tertiary", "displayName": "Discovery Sand", "tonalRamp": ["oklch(15% 0.02 88)", "oklch(26% 0.04 88)", "oklch(38% 0.07 88)", "oklch(50% 0.1 88)", "oklch(62% 0.12 88)", "oklch(74% 0.1 88)", "oklch(85% 0.07 88)", "oklch(95% 0.025 88)"] },
+      "list-heading": { "role": "neutral", "displayName": "List Heading Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "category-surface": { "role": "neutral", "displayName": "Category Plum", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "category-stroke": { "role": "neutral", "displayName": "Category Edge", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "category-ink": { "role": "neutral", "displayName": "Category Ink", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "success-stroke": { "role": "primary", "displayName": "Success Edge", "tonalRamp": ["oklch(15% 0.025 155)", "oklch(26% 0.05 155)", "oklch(38% 0.08 155)", "oklch(50% 0.11 155)", "oklch(62% 0.12 155)", "oklch(74% 0.1 155)", "oklch(85% 0.06 155)", "oklch(95% 0.02 155)"] },
+      "selection-stroke": { "role": "tertiary", "displayName": "Selection Edge", "tonalRamp": ["oklch(15% 0.02 88)", "oklch(26% 0.04 88)", "oklch(38% 0.07 88)", "oklch(50% 0.1 88)", "oklch(62% 0.12 88)", "oklch(74% 0.1 88)", "oklch(85% 0.07 88)", "oklch(95% 0.025 88)"] },
+      "modal-stroke": { "role": "neutral", "displayName": "Modal Edge", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "modal-backdrop": { "role": "neutral", "displayName": "Modal Shade", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] },
+      "modal-shadow": { "role": "neutral", "displayName": "Modal Shadow", "tonalRamp": ["oklch(15% 0.01 280)", "oklch(26% 0.02 280)", "oklch(38% 0.03 280)", "oklch(50% 0.035 280)", "oklch(62% 0.03 280)", "oklch(74% 0.025 280)", "oklch(85% 0.015 280)", "oklch(95% 0.008 280)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Pixel Display", "purpose": "Pixelify Sans for page and supporting-page headings; 30px on narrow layouts." },
+      "title": { "displayName": "Section Title", "purpose": "Pixelify Sans for section and management headings." },
+      "body": { "displayName": "Reading Text", "purpose": "Geist for interface copy and prompt content." },
+      "label": { "displayName": "Action Label", "purpose": "Pixelify Sans button text." },
+      "compact": { "displayName": "Compact Metadata", "purpose": "Geist for authors, dates, and secondary details." }
+    },
+    "shadows": [
+      { "name": "confirmation-modal", "value": "0 20px 60px #07061180", "purpose": "Structural separation of the native confirmation dialog from the dimmed page." }
+    ],
+    "motion": [
+      { "name": "control-feedback", "value": "140ms ease-out", "purpose": "Button background and border feedback; list opacity while filtering." },
+      { "name": "reduced-motion", "value": "transition-duration: 0ms !important; animation-duration: 0ms !important", "purpose": "Respects prefers-reduced-motion across elements and pseudo-elements." }
+    ],
+    "breakpoints": [
+      { "name": "rail-narrowing-max", "value": "1180px" },
+      { "name": "mobile-shell-max", "value": "760px" },
+      { "name": "compact-layout-max", "value": "520px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Pixelify Sans mint action for creation and primary submission.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Crear Prompt</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 14px;border:2px solid #c0f5d4;border-radius:0;font-family:var(--font-pixel),sans-serif;font-size:16px;font-weight:500;line-height:1.25;white-space:nowrap;cursor:pointer;background:var(--accent);color:#183229;transition:background-color 140ms ease-out,border-color 140ms ease-out}.ds-primary:hover{background:var(--accent-hover)}.ds-primary:focus-visible{outline:2px dashed var(--selection);outline-offset:4px}.ds-primary:disabled{cursor:not-allowed;color:#b1a8c2;background:#2d283a;border-color:#665c78}@media(prefers-reduced-motion:reduce){.ds-primary{transition-duration:0ms!important}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Square plum action for cancel and supporting choices.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Cancelar</button>",
+      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 14px;border:2px solid #7b6e97;border-radius:0;font-family:var(--font-pixel),sans-serif;font-size:16px;font-weight:500;line-height:1.25;cursor:pointer;background:var(--surface-raised);color:var(--foreground);transition:background-color 140ms ease-out,border-color 140ms ease-out}.ds-secondary:hover{background:#3b3352;border-color:#b4a1d6}.ds-secondary:focus-visible{outline:2px dashed var(--selection);outline-offset:4px}"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Coral confirmation action, distinct from the transparent destructive trigger.",
+      "html": "<button class=\"ds-danger\" type=\"button\">Confirmar eliminación</button>",
+      "css": ".ds-danger{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 14px;border:2px solid #ffd1d1;border-radius:0;font-family:var(--font-pixel),sans-serif;font-size:16px;font-weight:500;line-height:1.25;cursor:pointer;background:var(--danger);color:#3a1720;transition:background-color 140ms ease-out}.ds-danger:hover{background:#ffd1d1}.ds-danger:focus-visible{outline:2px dashed var(--selection);outline-offset:4px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard square web input with a dark interior and violet stroke.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-title\">Título</label><input class=\"ds-field\" id=\"ds-title\" type=\"text\" placeholder=\"Un nombre claro\">",
+      "css": ".ds-field-label{display:block;margin-bottom:7px;color:var(--foreground);font-family:var(--font-geist-sans),sans-serif;font-size:13px;font-weight:550}.ds-field{display:block;width:100%;min-width:0;padding:10px 12px;border:2px solid #7f709b;border-radius:0;background:var(--field);color:var(--foreground);font:14px/1.6 var(--font-geist-sans),sans-serif}.ds-field::placeholder{color:#aaa1bf;opacity:1}.ds-field:focus-visible{outline:2px dashed var(--selection);outline-offset:4px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-box",
+      "description": "Search surface with an inline crisp-edge symbol and a compact submit action.",
+      "html": "<form class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"currentColor\" shape-rendering=\"crispEdges\" aria-hidden=\"true\"><path d=\"M4 1h6v2h2v6h-2v2H4V9H2V3h2Zm0 2v6h6V3Zm7 7h2v2h2v3h-2v-2h-2Z\" fill-rule=\"evenodd\"/></svg><input aria-label=\"Buscar Prompts\" type=\"search\" placeholder=\"Buscar en título, descripción y contenido\"><button class=\"ds-search-button\" type=\"submit\">Buscar</button></form>",
+      "css": ".ds-search{display:flex;align-items:center;gap:12px;max-width:680px;padding:4px 4px 4px 12px;border:2px solid #7f709b;background:var(--field);color:var(--muted)}.ds-search svg{flex-shrink:0;width:16px;height:16px}.ds-search input{width:100%;min-width:0;padding:7px 0;border:0;outline:0;background:transparent;color:var(--foreground);font:13px/1.6 var(--font-geist-sans),sans-serif}.ds-search input::placeholder{color:#aaa1bf;opacity:1}.ds-search:focus-within{outline:2px dashed var(--selection);outline-offset:4px}.ds-search-button{min-height:34px;padding:6px 14px;border:2px solid #527b65;border-radius:0;background:var(--accent-soft);color:var(--accent);font:500 16px/1.25 var(--font-pixel),sans-serif;cursor:pointer}.ds-search-button:hover{background:#355044}.ds-search-button:focus-visible{outline:2px dashed var(--selection);outline-offset:4px}@media(max-width:520px){.ds-search{max-width:none;gap:7px;padding-left:10px}.ds-search input{font-size:16px}.ds-search-button{padding:7px 10px}}"
+    },
+    {
+      "name": "Selected Category Navigation",
+      "kind": "nav",
+      "refersTo": "category-navigation",
+      "description": "Category row with the shipped stepped butter cursor for the selected item.",
+      "html": "<nav class=\"ds-category-nav\" aria-label=\"Filtrar por Categoría\"><a class=\"ds-category-link\" href=\"#\">Todas las Categorías</a><a class=\"ds-category-link ds-selected\" href=\"#\" aria-current=\"page\"><span class=\"ds-cursor\" aria-hidden=\"true\"></span>Diseño</a></nav>",
+      "css": ".ds-category-nav{display:grid;gap:2px;background:var(--rail);font:13px/1.5 var(--font-geist-sans),sans-serif}.ds-category-link{position:relative;display:flex;align-items:center;gap:10px;min-height:40px;padding:8px 10px 8px 20px;color:#d3cae4;text-decoration:none}.ds-category-link:hover{background:#342d46;color:var(--foreground)}.ds-category-link:focus-visible{outline:2px dashed var(--selection);outline-offset:-2px}.ds-category-link.ds-selected{background:#3a3042;color:var(--selection);font-weight:600}.ds-cursor{position:absolute;left:5px;width:8px;height:10px;background:var(--selection);clip-path:polygon(0 0,3px 0,3px 2px,5px 2px,5px 4px,8px 4px,8px 6px,5px 6px,5px 8px,3px 8px,3px 10px,0 10px)}"
+    },
+    {
+      "name": "Category Badge",
+      "kind": "chip",
+      "refersTo": "category-badge",
+      "description": "Compact, descriptive Category label with a square category-color mark.",
+      "html": "<span class=\"ds-category\"><span class=\"ds-category-dot\" aria-hidden=\"true\"></span>Diseño</span>",
+      "css": ".ds-category{display:inline-flex;align-items:center;gap:8px;width:fit-content;max-width:100%;padding:3px 8px;border:1px solid #5b506e;background:#332c43;color:#dbd0ee;font:12px/1.6 var(--font-geist-sans),sans-serif;overflow-wrap:anywhere}.ds-category-dot{display:inline-block;flex-shrink:0;width:8px;height:8px;outline:1px solid #ffffff50;outline-offset:1px;background:var(--accent)}"
+    },
+    {
+      "name": "Prompt Result Row",
+      "kind": "card",
+      "refersTo": "prompt-row",
+      "description": "Dense, aligned library result that changes surface on hover or keyboard focus without lifting.",
+      "html": "<article class=\"ds-prompt-row\"><div class=\"ds-prompt-summary\"><h3><a href=\"#\">Título del Prompt</a></h3><p>Descripción breve para identificar cuándo resulta útil.</p></div><span class=\"ds-result-category\">Diseño</span><span class=\"ds-author\">Nombre de Autor</span></article>",
+      "css": ".ds-prompt-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 150px 140px 104px;gap:20px;align-items:center;min-height:98px;padding:18px 20px;border-top:1px solid var(--border);background:var(--surface);color:var(--foreground);font-family:var(--font-geist-sans),sans-serif}.ds-prompt-row:hover,.ds-prompt-row:focus-within{background:#30283f}.ds-prompt-summary{min-width:0}.ds-prompt-summary h3{margin:0;font:600 14px/1.5 var(--font-geist-sans),sans-serif;overflow-wrap:anywhere}.ds-prompt-summary a{color:inherit;text-decoration:none}.ds-prompt-summary a:focus-visible{outline:2px dashed var(--selection);outline-offset:2px}.ds-prompt-summary p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.65;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ds-result-category{font-size:12px;color:#dbd0ee}.ds-author{font-size:12px;color:var(--muted)}@media(max-width:1180px){.ds-prompt-row{grid-template-columns:minmax(0,1fr) 130px 110px;gap:16px;padding-left:16px;padding-right:16px}.ds-author{display:none}}@media(max-width:760px){.ds-prompt-row{grid-template-columns:minmax(0,1fr) 130px}}@media(max-width:520px){.ds-prompt-row{grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;padding:16px}.ds-prompt-summary{grid-column:1/-1}.ds-author{display:inline;font-size:11px;text-align:right}.ds-result-category{font-size:11px}}"
+    },
+    {
+      "name": "Prompt Modal",
+      "kind": "custom",
+      "refersTo": "prompt-modal",
+      "description": "Native URL-backed reading and editing dialog, centered on desktop and full-screen on mobile. Adjacent 44px pixel-icon actions retain accessible names and separate copy feedback.",
+      "html": "<dialog class=\"ds-prompt-modal\" aria-labelledby=\"ds-modal-title\"><header><h1 id=\"ds-modal-title\">Un Prompt</h1><button aria-label=\"Cerrar Prompt\" title=\"Cerrar Prompt\">Cerrar</button></header><div class=\"ds-modal-body\">Contenido del Prompt</div></dialog>",
+      "css": ".ds-prompt-modal{width:min(824px,calc(100vw - 48px));max-width:none;max-height:calc(100dvh - 64px);padding:0;margin:auto;overflow-y:auto;overscroll-behavior:contain;color:var(--foreground);background:var(--background);border:2px solid #a68ebd;box-shadow:0 20px 60px #07061180}.ds-prompt-modal::backdrop{background:#090813bb}.ds-prompt-modal header{position:sticky;top:0;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:20px 24px;background:var(--rail);border-bottom:1px solid var(--border)}.ds-prompt-modal h1{font:500 28px/1.3 var(--font-pixel),sans-serif;overflow-wrap:anywhere}.ds-modal-body{padding:24px}@media(max-width:760px){.ds-prompt-modal{width:100%;height:100dvh;max-height:100dvh;border:0;margin:0}.ds-prompt-modal header{padding:16px;gap:12px}.ds-prompt-modal h1{font-size:26px}.ds-modal-body{padding:20px 16px 32px}}"
+    },
+    {
+      "name": "Prompt Content Surface",
+      "kind": "custom",
+      "refersTo": "prompt-content",
+      "description": "Pre-wrapped readable prompt content inside a square framed panel.",
+      "html": "<pre class=\"ds-prompt-content\">Text that stays plain and preserves line breaks.</pre>",
+      "css": ".ds-prompt-content{margin:0;padding:24px;border:2px solid #716184;background:var(--surface);color:var(--foreground);font:14px/1.9 var(--font-geist-sans),sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:520px){.ds-prompt-content{padding:18px 16px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Midnight Cartridge Console",
+    "overview": "Promptify is a working library, not a game screen or promotional landing page. Its dark plum-and-indigo console atmosphere is built from flat color fields, square frames, Pixelify Sans display lettering, and compact, custom pixel-drawn SVG marks. Familiar web navigation, forms, and reading behavior stay familiar; the retro character comes from the surface language rather than replacing standard controls.\n\nGeist keeps prompt titles, descriptions, metadata, and long-form prompt text clear at working sizes. Mint marks constructive actions, butter yellow identifies selection and keyboard focus, and coral is reserved for destructive actions and errors. The interface uses no raster illustration, CRT treatment, or glow effects.",
+    "keyCharacteristics": [
+      "Midnight plum surfaces with mint actions and butter-yellow selection.",
+      "Hard square edges, crisp rules, and stepped SVG details.",
+      "Pixelify Sans for display and action labels; Geist for reading and data.",
+      "Compact, task-first density with responsive native web controls."
+    ],
+    "rules": [
+      { "name": "The Three Signals Rule", "body": "Mint means constructive action, butter means selected or focused, and coral means destructive or error. Do not trade these roles merely to add variety.", "section": "colors" },
+      { "name": "The Readable Pixel Rule", "body": "Use Pixelify Sans to mark hierarchy and action, not to typeset the content people came to read.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Use color planes and strokes to establish hierarchy; reserve the dialog shadow for modal separation, not decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the square silhouette and crisp one- or two-pixel border language.",
+      "Do use mint for constructive actions, butter for selection/focus, and coral for destructive or error states.",
+      "Do pair Pixelify Sans hierarchy with Geist reading text and data.",
+      "Do preserve standard, accessible navigation, form controls, visible keyboard focus, and clear hover states.",
+      "Do retain custom crisp-edge SVG symbols and the stepped Category cursor where those patterns are used."
+    ],
+    "donts": [
+      "Don't introduce rounded cards, pill controls, soft ambient shadows, or gradients; these conflict with the shipped square, flat surfaces.",
+      "Don't add CRT scanlines, glow, game scores, badges, or other gamification; the product is a working Prompt library.",
+      "Don't set long Prompt content or dense descriptive copy in Pixelify Sans.",
+      "Don't replace the world's stepped SVG icon language with a generic rounded icon set or raster decoration."
+    ]
+  }
+}

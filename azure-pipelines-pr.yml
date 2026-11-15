@@ -1,0 +1,43 @@
+# Validacion de PR: solo CI, sin empaquetado ni despliegue.
+# Azure Repos ignora `pr:` en YAML: esta pipeline se ejecuta mediante la branch policy
+# de master (Repos > Branches > master > Branch policies > Build validation),
+# que la lanza en cada PR y al actualizarla.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-24.04
+
+variables:
+  nodeVersion: '24.x'
+
+steps:
+  - checkout: self
+    clean: true
+  - task: UseNode@1
+    inputs:
+      version: $(nodeVersion)
+  - task: Cache@2
+    displayName: Cache npm
+    inputs:
+      key: 'npm | "$(Agent.OS)" | package-lock.json'
+      restoreKeys: |
+        npm | "$(Agent.OS)"
+      path: $(Pipeline.Workspace)/.npm
+  - script: npm ci --cache $(Pipeline.Workspace)/.npm --prefer-offline --no-audit --no-fund
+    displayName: Install
+  - script: npm audit --omit=dev --audit-level=high
+    displayName: Audit (production dependencies)
+  - script: npm run lint
+    displayName: Lint
+  - script: npm run build
+    displayName: Build
+  - script: npm test -- --reporter=default --reporter=junit --outputFile.junit=$(Common.TestResultsDirectory)/unit.xml
+    displayName: Test
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: '$(Common.TestResultsDirectory)/*.xml'
+      failTaskOnFailedTests: true

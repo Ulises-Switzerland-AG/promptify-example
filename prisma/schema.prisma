@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+model User {
+  oid             String   @id @db.NVarChar(36)
+  displayName     String   @db.NVarChar(200)
+  isAdministrator Boolean  @default(false)
+  prompts         Prompt[]
+}
+
+model Category {
+  id      String   @id @default(uuid()) @db.NVarChar(36)
+  name    String   @unique @db.NVarChar(50)
+  color   String   @db.Char(7)
+  prompts Prompt[]
+}
+
+model Prompt {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  title       String   @db.NVarChar(120)
+  content     String   @db.NVarChar(Max)
+  description String?  @db.NVarChar(500)
+  categoryId  String   @db.NVarChar(36)
+  authorOid   String   @db.NVarChar(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // SQL Server has no RESTRICT: NO ACTION rejects deleting a Category or User that still has Prompts.
+  category Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  author   User     @relation(fields: [authorOid], references: [oid], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([categoryId, createdAt(sort: Desc), id(sort: Desc)])
+}
