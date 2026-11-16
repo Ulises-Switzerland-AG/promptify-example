@@ -6,6 +6,7 @@ import { Icon } from "@/app/components/ui-icon";
 import { CopyPrompt } from "@/app/components/copy-prompt";
 import { ReadError } from "@/app/components/read-error";
 import { DeletePrompt } from "@/app/components/delete-prompt";
+import { CategoryBadges } from "@/app/components/category-badges";
 import { PromptModal } from "./prompt-modal";
 
 export type PromptRouteProps = {
@@ -29,7 +30,7 @@ export async function PromptDetail({ params, searchParams, modal = false }: Prom
   }
   const prompt = result.data;
   const content = <>
-    <span className="category-badge"><span className="category-dot" style={{ backgroundColor: prompt.category.color }} />{prompt.category.name}</span>
+    <CategoryBadges categories={prompt.categories} />
     {!modal && <h1>{prompt.title}</h1>}
     {prompt.description && <p className="detail-description">{prompt.description}</p>}
     <p className="detail-author">Por {prompt.authorName} <span aria-hidden="true">·</span> <time dateTime={prompt.createdAt}>{new Intl.DateTimeFormat("es-ES", { dateStyle: "long", timeZone: "UTC" }).format(new Date(prompt.createdAt))}</time></p>

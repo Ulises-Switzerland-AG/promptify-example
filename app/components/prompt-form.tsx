@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createPrompt, updatePrompt } from "@/app/actions/prompts";
 import type { CategoryDto, PromptDetailDto } from "@/lib/dto/dtos";
 import { actionErrorMessage } from "./read-error";
+import { CategoryPicker } from "./category-picker";
+import { categorySelectionError } from "./category-selection";
 
 export function PromptForm({ categories, prompt, returnHref = "/" }: {
   categories: CategoryDto[]; prompt?: PromptDetailDto; returnHref?: string;
@@ -13,9 +15,11 @@ export function PromptForm({ categories, prompt, returnHref = "/" }: {
   const router = useRouter();
   const [values, setValues] = useState({
     title: prompt?.title ?? "", description: prompt?.description ?? "",
-    categoryId: prompt?.categoryId ?? "", content: prompt?.content ?? "",
+    categoryIds: prompt?.categoryIds ?? [] as string[], content: prompt?.content ?? "",
   });
   const [error, submit, pending] = useActionState(async (_previous: string | null, form: FormData) => {
+    const selectionError = categorySelectionError(form);
+    if (selectionError) return selectionError;
     const result = prompt
       ? await updatePrompt(prompt.id, form).then((result) => result.ok ? { ok: true as const, data: { id: prompt.id } } : result)
       : await createPrompt(form);
@@ -47,16 +51,10 @@ export function PromptForm({ categories, prompt, returnHref = "/" }: {
           placeholder="Explica cuándo resulta útil y qué se puede conseguir."
         />
       </div>
-      <div className="form-field">
-        <label htmlFor="categoryId">Categoría <span>Obligatoria</span></label>
-        <select
-          id="categoryId" name="categoryId" required value={values.categoryId}
-          onChange={(event) => setValues({ ...values, categoryId: event.target.value })}
-        >
-          <option value="" disabled>Elige una Categoría</option>
-          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-        </select>
-      </div>
+      <CategoryPicker
+        categories={categories} selected={values.categoryIds}
+        onChange={(categoryIds) => setValues({ ...values, categoryIds })}
+      />
       <div className="form-field">
         <label htmlFor="content">Contenido del Prompt <span>Obligatorio</span></label>
         <textarea

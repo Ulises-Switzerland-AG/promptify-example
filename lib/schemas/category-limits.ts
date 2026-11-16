@@ -1,0 +1,3 @@
+export const MIN_CATEGORIES_PER_PROMPT = 1;
+export const MAX_CATEGORIES_PER_PROMPT = 5;
+export const MAX_FILTER_CATEGORIES = 20;

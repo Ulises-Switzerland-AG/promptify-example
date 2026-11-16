@@ -12,10 +12,10 @@ describe("Prisma Prompt search", () => {
     };
     const repository = new PrismaPromptRepository(client as unknown as PrismaClient);
 
-    await repository.list({ q: "informe", categoryId: "category", offset: 12, limit: 12 });
+    await repository.list({ q: "informe", categoryIds: ["a", "b"], offset: 12, limit: 12 });
 
     const where = {
-      categoryId: "category",
+      categories: { some: { categoryId: { in: ["a", "b"] } } },
       OR: [
         { title: { contains: "informe" } },
         { description: { contains: "informe" } },
@@ -27,5 +27,19 @@ describe("Prisma Prompt search", () => {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     }));
     expect(count).toHaveBeenCalledWith({ where });
+  });
+
+  it("does not filter by Category when none is selected", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const count = vi.fn().mockResolvedValue(0);
+    const client = {
+      prompt: { findMany, count },
+      $transaction: (operations: Promise<unknown>[]) => Promise.all(operations),
+    };
+    const repository = new PrismaPromptRepository(client as unknown as PrismaClient);
+
+    await repository.list({ categoryIds: [], offset: 0, limit: 12 });
+
+    expect(count).toHaveBeenCalledWith({ where: {} });
   });
 });

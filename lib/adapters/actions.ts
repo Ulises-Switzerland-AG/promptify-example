@@ -5,10 +5,10 @@ import { promptInputSchema } from "@/lib/schemas/prompt";
 import type { AdministratorService } from "@/lib/services/administrator-service";
 import type { CategoryService } from "@/lib/services/category-service";
 import type { PromptService } from "@/lib/services/prompt-service";
-import { parseInput, readFormFields } from "./parse";
+import { parseInput, readFormFields, readFormList } from "./parse";
 import type { ActionRunner } from "./run-action";
 
-const PROMPT_FIELDS = ["title", "content", "description", "categoryId"] as const;
+const PROMPT_FIELDS = ["title", "content", "description"] as const;
 const CATEGORY_FIELDS = ["name", "color"] as const;
 
 export function createActions(deps: {
@@ -25,7 +25,11 @@ export function createActions(deps: {
     return value;
   };
 
-  const parsePromptForm = (form: unknown) => parseInput(promptInputSchema, readFormFields(form, PROMPT_FIELDS));
+  const parsePromptForm = (form: unknown) =>
+    parseInput(promptInputSchema, {
+      ...readFormFields(form, PROMPT_FIELDS),
+      categoryIds: readFormList(form, "categoryId"),
+    });
   const parseCategoryForm = (form: unknown) => parseInput(categoryInputSchema, readFormFields(form, CATEGORY_FIELDS));
 
   return {

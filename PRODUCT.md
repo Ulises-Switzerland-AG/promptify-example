@@ -17,10 +17,10 @@ Prompts, with genuine text search to find relevant material.
 
 ## Capabilities and Constraints
 
-- Every Prompt has one Author and exactly one Category.
+- Every Prompt has one Author and one to five Categories.
 - Categories have names and colors and are maintained by Administrators.
 - All Prompts are visible to all authenticated Users; there are no private Prompts.
-- The backend lists newest first with Category filtering and pagination.
+- The backend lists newest first with Category filtering (a Prompt matches when it has any selected Category) and pagination.
 - Text search matches Prompt titles, descriptions, and content before pagination.
 - Favorites, popularity rankings, and recommendations are outside this scope.
 - Identity and authorization remain server-side, as defined in SECURITY.md.

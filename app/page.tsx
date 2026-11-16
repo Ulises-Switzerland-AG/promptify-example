@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { getContainer } from "@/lib/container";
+import { parseCategoryIdsParam } from "@/lib/schemas/prompt";
 import { Library } from "./components/library";
 import { ReadError } from "./components/read-error";
 
@@ -23,6 +24,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
     categories={categories.data}
     prompts={prompts.data}
     q={typeof params.q === "string" ? params.q.trim() : ""}
-    categoryId={typeof params.categoryId === "string" ? params.categoryId : ""}
+    categoryIds={parseCategoryIdsParam(params.categoryId).filter((id) => categories.data.some((category) => category.id === id))}
   />;
 }

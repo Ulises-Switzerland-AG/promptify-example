@@ -23,7 +23,7 @@ export default async function Administration() {
       <p className="detail-description">Mantén las Categorías y gestiona el rol de Administrador.</p>
       <section className="management-section" aria-labelledby="categories-title">
         <h2 id="categories-title">Categorías</h2>
-        <p className="section-description">Cada Prompt pertenece a una Categoría. Solo puedes eliminar las que no contienen Prompts.</p>
+        <p className="section-description">Cada Prompt pertenece a entre una y cinco Categorías. Solo puedes eliminar las que no contienen Prompts.</p>
         <div className="category-management-list">
           {categories.data.map((category) => <CategoryForm key={category.id} category={category} />)}
           {!categories.data.length && <p className="section-description">Aún no hay Categorías. Crea la primera para poder publicar Prompts.</p>}

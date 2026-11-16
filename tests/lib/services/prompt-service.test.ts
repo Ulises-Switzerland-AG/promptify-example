@@ -25,46 +25,57 @@ describe("PromptService", () => {
     it("translates page and pageSize into an offset and a limit", async () => {
       const list = vi.spyOn(repos.prompts, "list");
 
-      await service.list(other, { page: 1, pageSize: 20 });
-      await service.list(other, { page: 3, pageSize: 10 });
+      await service.list(other, { page: 1, pageSize: 20, categoryIds: [] });
+      await service.list(other, { page: 3, pageSize: 10, categoryIds: [] });
 
       expect(list.mock.calls.map(([criteria]) => criteria)).toEqual([
-        { categoryId: undefined, offset: 0, limit: 20 },
-        { categoryId: undefined, offset: 20, limit: 10 },
+        { categoryIds: [], offset: 0, limit: 20 },
+        { categoryIds: [], offset: 20, limit: 10 },
       ]);
     });
 
     it("returns the page, page size and total reported by the repository", async () => {
-      for (let i = 0; i < 3; i++) repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      for (let i = 0; i < 3; i++) repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
-      const result = await service.list(other, { page: 1, pageSize: 2 });
+      const result = await service.list(other, { page: 1, pageSize: 2, categoryIds: [] });
 
       expect(result).toMatchObject({ page: 1, pageSize: 2, total: 3 });
       expect(result.items).toHaveLength(2);
     });
 
-    it("rejects a filter for a Category that does not exist and never queries Prompts", async () => {
+    it("ignores filter Categories that do not exist", async () => {
       const list = vi.spyOn(repos.prompts, "list");
 
-      await expect(service.list(other, { page: 1, pageSize: 20, categoryId: missingId })).rejects.toBeInstanceOf(
-        ValidationError,
-      );
-      expect(list).not.toHaveBeenCalled();
+      await service.list(other, { page: 1, pageSize: 20, categoryIds: [missingId] });
+
+      expect(list).toHaveBeenCalledWith({ categoryIds: [], offset: 0, limit: 20 });
     });
 
-    it("passes an existing Category filter to the repository", async () => {
+    it("passes only the existing filter Categories to the repository", async () => {
       const otherCategory = repos.db.seedCategory({ name: "Other" });
       const list = vi.spyOn(repos.prompts, "list");
 
-      await service.list(other, { page: 1, pageSize: 20, categoryId: otherCategory.id });
+      await service.list(other, { page: 1, pageSize: 20, categoryIds: [otherCategory.id, missingId] });
 
-      expect(list).toHaveBeenCalledWith({ categoryId: otherCategory.id, offset: 0, limit: 20 });
+      expect(list).toHaveBeenCalledWith({ categoryIds: [otherCategory.id], offset: 0, limit: 20 });
+    });
+
+    it("lists Prompts having any of several Categories", async () => {
+      const second = repos.db.seedCategory({ name: "Second" });
+      const third = repos.db.seedCategory({ name: "Third" });
+      repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid, title: "A" });
+      repos.db.seedPrompt({ categoryIds: [second.id, third.id], authorOid: author.oid, title: "B" });
+      repos.db.seedPrompt({ categoryIds: [third.id], authorOid: author.oid, title: "C" });
+
+      const result = await service.list(other, { page: 1, pageSize: 20, categoryIds: [categoryId, second.id] });
+
+      expect(result.items.map((prompt) => prompt.title).sort()).toEqual(["A", "B"]);
     });
   });
 
   describe("get", () => {
     it("lets any User view any Prompt", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid, title: "Visible" });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid, title: "Visible" });
 
       const prompt = await service.get(other, stored.id);
 
@@ -79,14 +90,22 @@ describe("PromptService", () => {
 
   describe("create", () => {
     it("makes the current User the Author", async () => {
-      const prompt = await service.create(author, { title: "T", content: "C", categoryId });
+      const prompt = await service.create(author, { title: "T", content: "C", categoryIds: [categoryId] });
 
       expect(prompt.author.oid).toBe(author.oid);
       expect(repos.db.prompts.get(prompt.id)?.authorOid).toBe(author.oid);
     });
 
+    it("stores every Category", async () => {
+      const second = repos.db.seedCategory({ name: "Alpha" });
+
+      const prompt = await service.create(author, { title: "T", content: "C", categoryIds: [categoryId, second.id] });
+
+      expect(prompt.categories.map((category) => category.name)).toEqual(["Alpha", "General"]);
+    });
+
     it("ignores any authorOid smuggled into the input", async () => {
-      const input = { title: "T", content: "C", categoryId, authorOid: other.oid } as never;
+      const input = { title: "T", content: "C", categoryIds: [categoryId], authorOid: other.oid } as never;
 
       const prompt = await service.create(author, input);
 
@@ -94,57 +113,85 @@ describe("PromptService", () => {
     });
 
     it("rejects a Category that does not exist", async () => {
-      await expect(service.create(author, { title: "T", content: "C", categoryId: missingId })).rejects.toBeInstanceOf(
+      await expect(
+        service.create(author, { title: "T", content: "C", categoryIds: [categoryId, missingId] }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    });
+
+    it.each([
+      ["none", () => []],
+      ["more than five", () => Array.from({ length: 6 }, () => repos.db.seedCategory().id)],
+      ["repeated", () => [categoryId, categoryId]],
+    ])("rejects %s Categories before writing", async (_label, ids) => {
+      const create = vi.spyOn(repos.prompts, "create");
+
+      await expect(service.create(author, { title: "T", content: "C", categoryIds: ids() })).rejects.toBeInstanceOf(
         ValidationError,
       );
+      expect(create).not.toHaveBeenCalled();
     });
   });
 
   describe("update", () => {
-    it("lets the Author edit and keeps the Author", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+    const body = (categoryIds: string[]) => ({ title: "x", content: "x", categoryIds });
 
-      const updated = await service.update(author, stored.id, { title: "New", content: "Body", categoryId });
+    it("lets the Author edit and keeps the Author", async () => {
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
+
+      const updated = await service.update(author, stored.id, { title: "New", content: "Body", categoryIds: [categoryId] });
 
       expect(updated).toMatchObject({ title: "New", content: "Body" });
       expect(updated.author.oid).toBe(author.oid);
     });
 
-    it("forbids another User", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid, title: "Mine" });
+    it("replaces the Categories", async () => {
+      const second = repos.db.seedCategory({ name: "Second" });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
-      await expect(service.update(other, stored.id, { title: "Hacked", content: "x", categoryId })).rejects.toBeInstanceOf(
-        ForbiddenError,
-      );
+      const updated = await service.update(author, stored.id, body([second.id]));
+
+      expect(updated.categories.map((category) => category.id)).toEqual([second.id]);
+    });
+
+    it("forbids another User", async () => {
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid, title: "Mine" });
+
+      await expect(service.update(other, stored.id, body([categoryId]))).rejects.toBeInstanceOf(ForbiddenError);
       expect(repos.db.prompts.get(stored.id)?.title).toBe("Mine");
     });
 
     it("forbids an Administrator who is not the Author", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
-      await expect(service.update(admin, stored.id, { title: "x", content: "x", categoryId })).rejects.toBeInstanceOf(
-        ForbiddenError,
-      );
+      await expect(service.update(admin, stored.id, body([categoryId]))).rejects.toBeInstanceOf(ForbiddenError);
     });
 
     it("throws NotFound for a missing Prompt", async () => {
-      await expect(service.update(author, missingId, { title: "x", content: "x", categoryId })).rejects.toBeInstanceOf(
-        NotFoundError,
-      );
+      await expect(service.update(author, missingId, body([categoryId]))).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("rejects a Category that does not exist", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
-      await expect(
-        service.update(author, stored.id, { title: "x", content: "x", categoryId: missingId }),
-      ).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.update(author, stored.id, body([missingId]))).rejects.toBeInstanceOf(ValidationError);
+    });
+
+    it.each([
+      ["none", () => []],
+      ["more than five", () => Array.from({ length: 6 }, () => repos.db.seedCategory().id)],
+      ["repeated", () => [categoryId, categoryId]],
+    ])("rejects %s Categories before writing", async (_label, ids) => {
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
+      const update = vi.spyOn(repos.prompts, "update");
+
+      await expect(service.update(author, stored.id, body(ids()))).rejects.toBeInstanceOf(ValidationError);
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
   describe("delete", () => {
     it("lets the Author delete", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
       await service.delete(author, stored.id);
 
@@ -152,7 +199,7 @@ describe("PromptService", () => {
     });
 
     it("lets an Administrator delete someone else's Prompt", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
       await service.delete(admin, stored.id);
 
@@ -160,7 +207,7 @@ describe("PromptService", () => {
     });
 
     it("forbids another User", async () => {
-      const stored = repos.db.seedPrompt({ categoryId, authorOid: author.oid });
+      const stored = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: author.oid });
 
       await expect(service.delete(other, stored.id)).rejects.toBeInstanceOf(ForbiddenError);
       expect(repos.db.prompts.has(stored.id)).toBe(true);

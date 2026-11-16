@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { idSchema, oidSchema, paginationSchema } from "@/lib/schemas/common";
-import { promptInputSchema, promptListQuerySchema } from "@/lib/schemas/prompt";
+import { parseCategoryIdsParam, promptInputSchema, promptListQuerySchema } from "@/lib/schemas/prompt";
 import { categoryInputSchema } from "@/lib/schemas/category";
 
 const uuid = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
@@ -46,8 +46,10 @@ describe("paginationSchema", () => {
   });
 });
 
+const uuid2 = "6ba7b810-9dad-41d1-80b4-00c04fd430c8";
+
 describe("promptInputSchema", () => {
-  const valid = { title: "Title", content: "Content", categoryId: uuid };
+  const valid = { title: "Title", content: "Content", categoryIds: [uuid] };
 
   it("accepts a minimal Prompt and an optional description", () => {
     expect(promptInputSchema.safeParse(valid).success).toBe(true);
@@ -67,7 +69,21 @@ describe("promptInputSchema", () => {
 
   it("rejects a blank title and a non-uuid category", () => {
     expect(promptInputSchema.safeParse({ ...valid, title: "   " }).success).toBe(false);
-    expect(promptInputSchema.safeParse({ ...valid, categoryId: "abc" }).success).toBe(false);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: ["abc"] }).success).toBe(false);
+  });
+
+  it("requires between one and five distinct Categories", () => {
+    const ids = Array.from({ length: 6 }, (_, i) => `3f2504e0-4f89-41d3-9a0c-0305e82c330${i}`);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: [] }).success).toBe(false);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: ids.slice(0, 5) }).success).toBe(true);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: ids }).success).toBe(false);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: [uuid, uuid] }).success).toBe(false);
+    expect(promptInputSchema.safeParse({ ...valid, categoryIds: [uuid, uuid.toUpperCase()] }).success).toBe(false);
+    expect(promptInputSchema.safeParse({ title: "T", content: "C" }).success).toBe(false);
+  });
+
+  it("lowercases Category ids", () => {
+    expect(promptInputSchema.parse({ ...valid, categoryIds: [uuid.toUpperCase()] }).categoryIds).toEqual([uuid]);
   });
 
   it("never lets authorOid, createdAt or updatedAt through", () => {
@@ -77,22 +93,49 @@ describe("promptInputSchema", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    expect(Object.keys(parsed).sort()).toEqual(["categoryId", "content", "title"]);
+    expect(Object.keys(parsed).sort()).toEqual(["categoryIds", "content", "title"]);
   });
 });
 
 describe("promptListQuerySchema", () => {
   it("combines pagination with an optional category filter", () => {
-    expect(promptListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 20 });
+    expect(promptListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 20, categoryIds: [] });
     expect(promptListQuerySchema.parse({ categoryId: uuid, page: "2" })).toEqual({
-      categoryId: uuid,
+      categoryIds: [uuid],
       page: 2,
       pageSize: 20,
     });
   });
 
-  it("rejects an invalid category filter", () => {
-    expect(promptListQuerySchema.safeParse({ categoryId: "x" }).success).toBe(false);
+  it("accepts a repeated category filter", () => {
+    expect(promptListQuerySchema.parse({ categoryId: [uuid, uuid2] }).categoryIds).toEqual([uuid, uuid2]);
+  });
+
+  it("ignores invalid, empty and duplicate category ids, case-insensitively", () => {
+    expect(promptListQuerySchema.parse({ categoryId: "x" }).categoryIds).toEqual([]);
+    expect(promptListQuerySchema.parse({ categoryId: "" }).categoryIds).toEqual([]);
+    expect(
+      promptListQuerySchema.parse({ categoryId: [uuid, uuid.toUpperCase(), "nope", uuid2] }).categoryIds,
+    ).toEqual([uuid, uuid2]);
+  });
+
+  it("rejects more than 20 distinct category ids", () => {
+    const ids = Array.from({ length: 21 }, (_, i) => `3f2504e0-4f89-41d3-9a0c-0305e82c33${String(i).padStart(2, "0")}`);
+    expect(promptListQuerySchema.safeParse({ categoryId: ids.slice(0, 20) }).success).toBe(true);
+    expect(promptListQuerySchema.safeParse({ categoryId: ids }).success).toBe(false);
+  });
+
+  it("rejects a non-text category filter", () => {
+    expect(promptListQuerySchema.safeParse({ categoryId: 5 }).success).toBe(false);
+    expect(promptListQuerySchema.safeParse({ categoryId: [uuid, 5] }).success).toBe(false);
+  });
+});
+
+describe("parseCategoryIdsParam", () => {
+  it("normalises a search param into distinct lowercase uuids", () => {
+    expect(parseCategoryIdsParam(undefined)).toEqual([]);
+    expect(parseCategoryIdsParam(uuid.toUpperCase())).toEqual([uuid]);
+    expect(parseCategoryIdsParam([uuid, "bad", uuid, uuid2])).toEqual([uuid, uuid2]);
   });
 });
 

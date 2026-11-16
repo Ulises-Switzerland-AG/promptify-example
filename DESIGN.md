@@ -184,7 +184,7 @@ The palette pairs near-black violet surfaces and lavender text with a restrained
 
 The desktop shell pairs a fixed-width navigation rail with a flexible workspace. The rail is 224px wide, narrowing to 208px below 1180px; the workspace is capped at 1500px. Detail and creation content center in an 824px column, while administration uses up to 1040px. The standard desktop top bar is 60px high.
 
-At 760px and below, the rail gives way to a 64px top bar with the brand and mobile administration link; Category filtering becomes a native select. The result grid progressively removes date then author columns, and at 520px the table heading disappears and each result becomes a compact stacked row. Page insets step down from 32px to 24px, 20px, and 16px at the corresponding layouts. Repeated gaps cluster around 8–12px for controls, 16–24px inside content, and 24–36px between sections.
+At 760px and below, the rail gives way to a 64px top bar with the brand and mobile administration link; Category filtering becomes a collapsible "Categorías (N)" panel of checkboxes. The result grid progressively removes date then author columns, and at 520px the table heading disappears and each result becomes a compact stacked row. Page insets step down from 32px to 24px, 20px, and 16px at the corresponding layouts. Repeated gaps cluster around 8–12px for controls, 16–24px inside content, and 24–36px between sections.
 
 ## Elevation & Depth
 
@@ -222,7 +222,7 @@ The form language is square throughout: buttons, inputs, category markers, badge
 - **Style:** Near-black Field, 2px Field Violet border, square corners, and 10px × 12px padding.
 - **Focus:** Butter dashed outline with a 4px offset; the search surface applies the same treatment on focus-within.
 - **Error / Disabled:** Errors pair Deep Wine backing with a coral rule and text; disabled controls use the dark disabled surface and subdued text.
-- **Mobile:** Preserve native select behavior for Category filtering; text entry expands to 16px on narrow screens to remain comfortable.
+- **Mobile:** Category filtering uses a native `<details>` panel of real checkboxes; text entry expands to 16px on narrow screens to remain comfortable.
 
 ### Navigation
 - **Style:** Aubergine rail with Pixelify Sans discovery and administration links; regular Category names stay in IBM Plex Sans.

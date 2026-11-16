@@ -105,7 +105,8 @@ describe("CategoryService", () => {
 
     it("rejects deleting a Category that has Prompts with Conflict", async () => {
       const category = repos.db.seedCategory();
-      repos.db.seedPrompt({ categoryId: category.id, authorOid: user.oid });
+      const other = repos.db.seedCategory();
+      repos.db.seedPrompt({ categoryIds: [other.id, category.id], authorOid: user.oid });
 
       await expect(service.delete(admin, category.id)).rejects.toBeInstanceOf(ConflictError);
       expect(repos.db.categories.has(category.id)).toBe(true);

@@ -17,7 +17,7 @@ describe("URL-backed Prompt modals", () => {
     queries.getMe.mockResolvedValue({ ok: true, data: { name: "Ada" } });
     queries.getPrompt.mockResolvedValue({ ok: true, data: {
       id: "id", title: "Un Prompt", content: "<b>Texto literal</b>", description: "Descripción",
-      categoryId: "cat", category: { name: "Análisis", color: "#123456" }, authorName: "Ada",
+      categoryIds: ["cat"], categories: [{ id: "cat", name: "Análisis", color: "#123456" }], authorName: "Ada",
       createdAt: "2026-11-10T12:00:00Z", canEdit: true, canDelete: true,
     } });
     queries.listCategories.mockResolvedValue({ ok: true, data: [{ id: "cat", name: "Análisis", color: "#123456" }] });

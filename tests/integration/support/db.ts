@@ -47,10 +47,16 @@ export async function seedCategory(client: PrismaClient, data: { name?: string; 
 
 export async function seedPrompt(
   client: PrismaClient,
-  data: { categoryId: string; authorOid: string; title?: string; content?: string; createdAt?: Date; updatedAt?: Date; id?: string },
+  data: { categoryIds: string[]; authorOid: string; title?: string; content?: string; createdAt?: Date; updatedAt?: Date; id?: string },
 ) {
+  const { categoryIds, ...rest } = data;
   return client.prompt.create({
-    data: { title: "Title", content: "Content", ...data },
+    data: {
+      title: "Title",
+      content: "Content",
+      ...rest,
+      categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
+    },
   });
 }
 

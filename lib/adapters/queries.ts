@@ -5,7 +5,7 @@ import { promptListQuerySchema } from "@/lib/schemas/prompt";
 import type { CategoryService } from "@/lib/services/category-service";
 import type { AdministratorService } from "@/lib/services/administrator-service";
 import type { PromptService } from "@/lib/services/prompt-service";
-import { parseInput, readSearchParams } from "./parse";
+import { parseInput, readSearchParamList, readSearchParams } from "./parse";
 import type { ActionRunner } from "./run-action";
 
 export function createQueries(deps: {
@@ -18,10 +18,10 @@ export function createQueries(deps: {
     listPrompts: (searchParams: unknown) =>
       run(
         () =>
-          parseInput(
-            promptListQuerySchema,
-            readSearchParams(searchParams, ["page", "pageSize", "categoryId", "q"] as const),
-          ),
+          parseInput(promptListQuerySchema, {
+            ...readSearchParams(searchParams, ["page", "pageSize", "q"] as const),
+            categoryId: readSearchParamList(searchParams, "categoryId"),
+          }),
         async (user, query) => {
           const result = await services.prompts.list(user, query);
           return { ...result, items: result.items.map(toPromptListItemDto) };

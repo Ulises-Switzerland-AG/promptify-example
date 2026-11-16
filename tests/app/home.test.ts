@@ -14,11 +14,12 @@ vi.mock("next/server", () => ({ connection: vi.fn().mockResolvedValue(undefined)
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const categoryId = "a0000000-0000-4000-8000-000000000001";
+const secondId = "a0000000-0000-4000-8000-000000000002";
 const prompt = {
   id: "b0000000-0000-4000-8000-000000000002",
   title: "Analiza un informe <script>alert(1)</script>",
   description: "Convierte los datos en decisiones.",
-  category: { name: "Análisis", color: "#123456" },
+  categories: [{ id: categoryId, name: "Análisis", color: "#123456" }],
   authorName: "Ada",
   createdAt: "2026-11-10T12:00:00.000Z",
 };
@@ -31,7 +32,10 @@ describe("Promptify home", () => {
   beforeEach(() => {
     container.mockImplementation(() => ({ queries }));
     queries.listPrompts.mockResolvedValue({ ok: true, data: { items: [prompt], total: 25, page: 2, pageSize: 12 } });
-    queries.listCategories.mockResolvedValue({ ok: true, data: [{ id: categoryId, name: "Análisis", color: "#123456" }] });
+    queries.listCategories.mockResolvedValue({ ok: true, data: [
+      { id: categoryId, name: "Análisis", color: "#123456" },
+      { id: secondId, name: "Legal", color: "#654321" },
+    ] });
     queries.getMe.mockResolvedValue({ ok: true, data: { name: "Ada", isAdministrator: false } });
   });
 
@@ -75,6 +79,132 @@ describe("Promptify home", () => {
     const html = await render({ q: "informe", categoryId, page: "2" });
     const origin = `/?q=informe&categoryId=${categoryId}&page=2`;
     expect(html).toContain(`/prompts/new?from=${encodeURIComponent(origin)}`);
+  });
+
+  it("offers every Category as a checkbox and checks the selected ones", async () => {
+    const html = await render({ categoryId: [categoryId, secondId] });
+    const sidebar = html.slice(html.indexOf('aria-label="Filtrar por Categoría"'), html.indexOf("</aside>"));
+
+    expect(sidebar.match(/type="checkbox"/g)).toHaveLength(2);
+    expect(sidebar.match(/checked=""/g)).toHaveLength(2);
+  });
+
+  it("leaves Categories unchecked when no filter is applied", async () => {
+    const html = await render();
+    const sidebar = html.slice(html.indexOf('aria-label="Filtrar por Categoría"'), html.indexOf("</aside>"));
+
+    expect(sidebar).not.toContain('checked=""');
+    expect(html).toContain("Todos los Prompts");
+  });
+
+  it("keeps every selected Category in pagination and Prompt links", async () => {
+    const html = await render({ q: "informe", categoryId: [categoryId, secondId], page: "2" });
+
+    expect(html).toContain(`q=informe&amp;categoryId=${categoryId}&amp;categoryId=${secondId}&amp;page=3`);
+  });
+
+  it("titles the list with the number of selected Categories", async () => {
+    const html = await render({ categoryId: [categoryId, secondId] });
+
+    expect(html).toContain('<h2 id="prompt-list-title">2 Categorías</h2>');
+  });
+
+  it("names the Category when only one is selected", async () => {
+    const html = await render({ categoryId: secondId });
+
+    expect(html).toContain("<h2 id=\"prompt-list-title\">Legal</h2>");
+  });
+
+  it("shows one removable chip per selected Category", async () => {
+    const html = await render({ categoryId: [categoryId, secondId] });
+
+    expect(html).toContain('aria-label="Quitar filtro Análisis"');
+    expect(html).toContain('aria-label="Quitar filtro Legal"');
+  });
+
+  it("ignores filter ids that are not real Categories in the interface", async () => {
+    const html = await render({ categoryId: ["a0000000-0000-4000-8000-0000000000ff", "no-es-un-id"] });
+    const sidebar = html.slice(html.indexOf('aria-label="Filtrar por Categoría"'), html.indexOf("</aside>"));
+
+    expect(sidebar).not.toContain('checked=""');
+    expect(html).not.toContain("Quitar filtro");
+  });
+
+  it("replaces the single-choice select with a multi-select panel showing how many are selected", async () => {
+    const html = await render({ categoryId: [categoryId, secondId] });
+
+    expect(html).not.toContain("<select");
+    expect(html).toContain("Categorías (2)");
+  });
+
+  it("shows every Category of a Prompt, and collapses the rest behind +N", async () => {
+    const many = ["Uno", "Dos", "Tres", "Cuatro", "Cinco"].map((name, index) => ({
+      id: `a0000000-0000-4000-8000-00000000010${index}`, name, color: "#112233",
+    }));
+    queries.listPrompts.mockResolvedValue({
+      ok: true, data: { items: [{ ...prompt, categories: many }], total: 1, page: 1, pageSize: 12 },
+    });
+
+    const html = await render();
+    const row = html.slice(html.indexOf('class="prompt-row"'));
+
+    for (const name of ["Uno", "Dos", "Tres"]) expect(row).toContain(`</span>${name}</span>`);
+    expect(row).not.toContain("</span>Cuatro</span>");
+    expect(row).toContain("+2");
+    expect(row).toMatch(/class="sr-only">y 2 Categorías más: Cuatro, Cinco</);
+  });
+
+  it("does not collapse up to three Categories and names a single hidden one in the singular", async () => {
+    const four = ["Uno", "Dos", "Tres", "Cuatro"].map((name, index) => ({
+      id: `a0000000-0000-4000-8000-00000000020${index}`, name, color: "#112233",
+    }));
+    queries.listPrompts.mockResolvedValue({
+      ok: true, data: { items: [{ ...prompt, categories: four.slice(0, 3) }, { ...prompt, id: "other", categories: four }], total: 2, page: 1, pageSize: 12 },
+    });
+
+    const html = await render();
+
+    expect(html.match(/category-badge-more/g)).toHaveLength(1);
+    expect(html).toMatch(/class="sr-only">y 1 Categoría más: Cuatro</);
+  });
+
+  it("passes repeated categoryId params to the backend as a list", async () => {
+    await render({ categoryId: [categoryId, secondId] });
+
+    expect(queries.listPrompts).toHaveBeenCalledWith({ categoryId: [categoryId, secondId], pageSize: "12" });
+  });
+
+  it("checks exactly the selected Category in the sidebar and the mobile panel", async () => {
+    const html = await render({ categoryId: secondId.toUpperCase() });
+
+    expect(html.match(/checked=""/g)).toHaveLength(2);
+    expect(html.match(/checked=""\/><span class="category-dot"[^>]*><\/span>Legal/g)).toHaveLength(2);
+    expect(html).toContain("Categorías (1)");
+  });
+
+  it("renders no chip list when only a search is applied", async () => {
+    const html = await render({ q: "informe" });
+
+    expect(html).not.toContain("filter-chips");
+  });
+
+  it("disables unchecked filter options once twenty Categories are selected", async () => {
+    const many = Array.from({ length: 21 }, (_, i) => ({
+      id: `a0000000-0000-4000-8000-0000000003${String(i).padStart(2, "0")}`, name: `Cat ${i}`, color: "#112233",
+    }));
+    queries.listCategories.mockResolvedValue({ ok: true, data: many });
+
+    const html = await render({ categoryId: many.slice(0, 20).map((category) => category.id) });
+
+    expect(html.match(/disabled=""/g)).toHaveLength(2);
+  });
+
+  it("shows invalid input instead of silently trimming more than twenty filter ids", async () => {
+    queries.listPrompts.mockResolvedValue({ ok: false, error: "Invalid input" });
+
+    const html = await render({ categoryId: Array.from({ length: 21 }, (_, i) => `a0000000-0000-4000-8000-0000000004${String(i).padStart(2, "0")}`) });
+
+    expect(html).toContain('role="alert"');
   });
 
   it("distinguishes no matches from an empty library", async () => {

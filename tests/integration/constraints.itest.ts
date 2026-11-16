@@ -29,7 +29,7 @@ describe("database constraints", () => {
   it("restricts deleting a Category that has Prompts", async () => {
     const author = await seedUser(client);
     const category = await seedCategory(client);
-    await seedPrompt(client, { categoryId: category.id, authorOid: author.oid });
+    await seedPrompt(client, { categoryIds: [category.id], authorOid: author.oid });
 
     const error = await client.category.delete({ where: { id: category.id } }).catch((e) => e);
 
@@ -39,11 +39,33 @@ describe("database constraints", () => {
   it("restricts deleting a User that has Prompts", async () => {
     const author = await seedUser(client);
     const category = await seedCategory(client);
-    await seedPrompt(client, { categoryId: category.id, authorOid: author.oid });
+    await seedPrompt(client, { categoryIds: [category.id], authorOid: author.oid });
 
     const error = await client.user.delete({ where: { oid: author.oid } }).catch((e) => e);
 
     expect(codeOf(error)).toBe("P2003");
+  });
+
+  it("removes the Category links when a Prompt is deleted", async () => {
+    const author = await seedUser(client);
+    const category = await seedCategory(client);
+    const prompt = await seedPrompt(client, { categoryIds: [category.id], authorOid: author.oid });
+
+    await client.prompt.delete({ where: { id: prompt.id } });
+
+    expect(await client.promptCategory.count()).toBe(0);
+  });
+
+  it("rejects linking the same Category twice to a Prompt", async () => {
+    const author = await seedUser(client);
+    const category = await seedCategory(client);
+    const prompt = await seedPrompt(client, { categoryIds: [category.id], authorOid: author.oid });
+
+    const error = await client.promptCategory
+      .create({ data: { promptId: prompt.id, categoryId: category.id } })
+      .catch((e) => e);
+
+    expect(codeOf(error)).toBe("P2002");
   });
 
   it("rejects colors and lengths the schema cannot hold", async () => {

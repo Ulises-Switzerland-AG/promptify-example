@@ -78,16 +78,25 @@ describe("category delete", () => {
   it("refuses a Category that has Prompts", async () => {
     const author = await seedUser(client);
     const category = await seedCategory(client);
-    await seedPrompt(client, { categoryId: category.id, authorOid: author.oid });
+    await seedPrompt(client, { categoryIds: [category.id], authorOid: author.oid });
 
     expect(await db.categories.delete(category.id)).toBe("has_prompts");
     expect(await client.category.count()).toBe(1);
   });
 
+  it("refuses a Category that is only the second Category of a Prompt", async () => {
+    const author = await seedUser(client);
+    const first = await seedCategory(client);
+    const second = await seedCategory(client);
+    await seedPrompt(client, { categoryIds: [first.id, second.id], authorOid: author.oid });
+
+    expect(await db.categories.delete(second.id)).toBe("has_prompts");
+  });
+
   it("answers the service with Conflict when the Category has Prompts", async () => {
     const administrator = await seedUser(client, { isAdministrator: true });
     const category = await seedCategory(client);
-    await seedPrompt(client, { categoryId: category.id, authorOid: administrator.oid });
+    await seedPrompt(client, { categoryIds: [category.id], authorOid: administrator.oid });
 
     await expect(categoryService.delete(asCurrentUser(administrator), category.id)).rejects.toBeInstanceOf(
       ConflictError,
@@ -105,11 +114,11 @@ describe("category delete", () => {
 
       const [deletion, creation] = await Promise.allSettled([
         categoryService.delete(administrator, category.id),
-        promptService.create(author, { title: "T", content: "C", categoryId: category.id }),
+        promptService.create(author, { title: "T", content: "C", categoryIds: [category.id] }),
       ]);
 
       const categoryExists = (await client.category.count({ where: { id: category.id } })) === 1;
-      const promptCount = await client.prompt.count({ where: { categoryId: category.id } });
+      const promptCount = await client.promptCategory.count({ where: { categoryId: category.id } });
 
       expect(categoryExists || promptCount === 0, `round ${round}: orphan Prompt`).toBe(true);
       if (deletion.status === "fulfilled") {
@@ -121,6 +130,61 @@ describe("category delete", () => {
         expect(deletion.reason).toBeInstanceOf(ConflictError);
         expect(promptCount).toBe(1);
       }
+    }
+  });
+
+  it("keeps the repository-level invariant when a Category is deleted while a Prompt is created or updated", async () => {
+    const author = await seedUser(client);
+
+    for (let round = 0; round < rounds; round++) {
+      await client.prompt.deleteMany();
+      await client.category.deleteMany();
+      const kept = await seedCategory(client);
+      const racing = await seedCategory(client);
+      const existing = await seedPrompt(client, { categoryIds: [kept.id], authorOid: author.oid });
+
+      // No service validation in front: the foreign key and the Serializable delete decide.
+      const [deletion, creation, update] = await Promise.allSettled([
+        db.categories.delete(racing.id),
+        db.prompts.create({ title: "T", content: "C", categoryIds: [racing.id], authorOid: author.oid }),
+        db.prompts.update(existing.id, { title: "T", content: "C", categoryIds: [kept.id, racing.id] }),
+      ]);
+
+      const categoryExists = (await client.category.count({ where: { id: racing.id } })) === 1;
+      const links = await client.promptCategory.count({ where: { categoryId: racing.id } });
+      expect(categoryExists || links === 0, `round ${round}: link to a deleted Category`).toBe(true);
+      if (deletion.status === "fulfilled" && deletion.value === "deleted") {
+        expect(creation.status).toBe("rejected");
+        expect(update.status).toBe("rejected");
+      }
+      for (const result of [creation, update]) {
+        if (result.status === "rejected") expect(result.reason).toBeInstanceOf(ConflictError);
+      }
+    }
+  });
+
+  it("never ends with a Prompt linked to a Category deleted while it was being updated", async () => {
+    const administrator = asCurrentUser(await seedUser(client, { isAdministrator: true }));
+    const author = asCurrentUser(await seedUser(client));
+
+    for (let round = 0; round < rounds; round++) {
+      await client.prompt.deleteMany();
+      await client.category.deleteMany();
+      const kept = await seedCategory(client);
+      const moving = await seedCategory(client);
+      const prompt = await promptService.create(author, { title: "T", content: "C", categoryIds: [kept.id] });
+
+      const [deletion, update] = await Promise.allSettled([
+        categoryService.delete(administrator, moving.id),
+        promptService.update(author, prompt.id, { title: "T", content: "C", categoryIds: [kept.id, moving.id] }),
+      ]);
+
+      const movingExists = (await client.category.count({ where: { id: moving.id } })) === 1;
+      const links = await client.promptCategory.count({ where: { categoryId: moving.id } });
+
+      expect(movingExists || links === 0, `round ${round}: link to a deleted Category`).toBe(true);
+      expect(await client.promptCategory.count({ where: { promptId: prompt.id, categoryId: kept.id } })).toBe(1);
+      if (deletion.status === "fulfilled") expect(update.status).toBe("rejected");
     }
   });
 });

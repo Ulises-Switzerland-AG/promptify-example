@@ -2,15 +2,15 @@ import "server-only";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 import type { CategoryRepository, PromptData, PromptRepository } from "@/lib/repositories/types";
 import type { PromptInput, PromptListQuery } from "@/lib/schemas/prompt";
+import { MAX_CATEGORIES_PER_PROMPT, MIN_CATEGORIES_PER_PROMPT } from "@/lib/schemas/category-limits";
 import type { CurrentUser } from "./types";
 
 export class PromptService {
   constructor(private readonly deps: { prompts: PromptRepository; categories: CategoryRepository }) {}
 
   async list(_user: CurrentUser, query: PromptListQuery) {
-    if (query.categoryId) await this.requireCategory(query.categoryId);
     const { items, total } = await this.deps.prompts.list({
-      categoryId: query.categoryId,
+      categoryIds: await this.existingCategoryIds(query.categoryIds),
       q: query.q,
       offset: (query.page - 1) * query.pageSize,
       limit: query.pageSize,
@@ -25,14 +25,14 @@ export class PromptService {
   }
 
   async create(user: CurrentUser, input: PromptInput) {
-    await this.requireCategory(input.categoryId);
+    await this.requireCategories(input.categoryIds);
     return this.deps.prompts.create({ ...toPromptData(input), authorOid: user.oid });
   }
 
   async update(user: CurrentUser, id: string, input: PromptInput) {
     const existing = await this.get(user, id);
     if (existing.author.oid !== user.oid) throw new ForbiddenError();
-    await this.requireCategory(input.categoryId);
+    await this.requireCategories(input.categoryIds);
     const updated = await this.deps.prompts.update(id, toPromptData(input));
     if (!updated) throw new NotFoundError("Prompt not found");
     return updated;
@@ -44,8 +44,24 @@ export class PromptService {
     await this.deps.prompts.delete(id);
   }
 
-  private async requireCategory(categoryId: string) {
-    if (!(await this.deps.categories.findById(categoryId))) throw new ValidationError("Unknown Category");
+  // A filter naming Categories that no longer exist is not an error: those ids are dropped.
+  private async existingCategoryIds(ids: string[]) {
+    if (!ids.length) return [];
+    return (await this.deps.categories.findByIds(ids)).map((category) => category.id);
+  }
+
+  private async requireCategories(ids: string[]) {
+    const distinct = new Set(ids);
+    if (
+      distinct.size !== ids.length ||
+      ids.length < MIN_CATEGORIES_PER_PROMPT ||
+      ids.length > MAX_CATEGORIES_PER_PROMPT
+    ) {
+      throw new ValidationError("A Prompt needs between 1 and 5 distinct Categories");
+    }
+    if ((await this.deps.categories.findByIds(ids)).length !== ids.length) {
+      throw new ValidationError("Unknown Category");
+    }
   }
 }
 
@@ -54,6 +70,6 @@ function toPromptData(input: PromptInput): PromptData {
     title: input.title,
     content: input.content,
     description: input.description,
-    categoryId: input.categoryId,
+    categoryIds: input.categoryIds,
   };
 }

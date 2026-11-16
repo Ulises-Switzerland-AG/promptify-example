@@ -34,3 +34,20 @@ export function readSearchParams<K extends string>(raw: unknown, keys: readonly 
   }
   return fields;
 }
+
+// A list key may repeat; every value must be text.
+export function readFormList(raw: unknown, key: string): string[] {
+  if (!(raw instanceof FormData)) throw new ValidationError("Invalid input");
+  return raw.getAll(key).map((value) => {
+    if (typeof value !== "string") throw new ValidationError("Invalid input");
+    return value;
+  });
+}
+
+export function readSearchParamList(raw: unknown, key: string): string[] {
+  if (typeof raw !== "object" || raw === null) throw new ValidationError("Invalid input");
+  const value = (raw as Record<string, unknown>)[key];
+  const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
+  if (!values.every((item) => typeof item === "string")) throw new ValidationError("Invalid input");
+  return values;
+}

@@ -78,19 +78,32 @@ FROM n;
 -- Spread creation dates so the newest-first ordering is visible. Prisma's @updatedAt has no database default.
 DECLARE @now DATETIME2 = SYSUTCDATETIME();
 
-INSERT INTO [dbo].[Prompt] (id, title, content, description, categoryId, authorOid, createdAt, updatedAt)
+INSERT INTO [dbo].[Prompt] (id, title, content, description, authorOid, createdAt, updatedAt)
 SELECT
   LOWER(CONVERT(NVARCHAR(36), NEWID())),
   p.title,
   p.content,
   p.description,
-  c.id,
   p.authorOid,
   DATEADD(HOUR, -ROW_NUMBER() OVER (ORDER BY p.title), @now),
   DATEADD(HOUR, -ROW_NUMBER() OVER (ORDER BY p.title), @now)
 FROM @prompts p
-JOIN [dbo].[Category] c ON c.name = p.category
 WHERE NOT EXISTS (SELECT 1 FROM [dbo].[Prompt] x WHERE x.title = p.title);
+
+-- Every Prompt gets its Category; the filler rows also get "Data analysis" so several Categories per Prompt can be tried.
+INSERT INTO [dbo].[PromptCategory] (promptId, categoryId)
+SELECT pr.id, c.id
+FROM [dbo].[Prompt] pr
+JOIN @prompts p ON p.title = pr.title
+JOIN [dbo].[Category] c ON c.name = p.category
+WHERE NOT EXISTS (SELECT 1 FROM [dbo].[PromptCategory] x WHERE x.promptId = pr.id AND x.categoryId = c.id);
+
+INSERT INTO [dbo].[PromptCategory] (promptId, categoryId)
+SELECT pr.id, c.id
+FROM [dbo].[Prompt] pr
+JOIN @prompts p ON p.title = pr.title AND p.title LIKE N'Sample prompt%'
+JOIN [dbo].[Category] c ON c.name = N'Data analysis'
+WHERE NOT EXISTS (SELECT 1 FROM [dbo].[PromptCategory] x WHERE x.promptId = pr.id AND x.categoryId = c.id);
 
 SELECT
   (SELECT COUNT(*) FROM [dbo].[User]) AS users,

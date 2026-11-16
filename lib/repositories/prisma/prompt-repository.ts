@@ -5,7 +5,7 @@ import type { PrismaClient } from "./client";
 import { mapPrismaError } from "./errors";
 
 const include = {
-  category: { select: { id: true, name: true, color: true } },
+  categories: { select: { category: { select: { id: true, name: true, color: true } } } },
   author: { select: { oid: true, displayName: true } },
 } as const;
 
@@ -16,7 +16,7 @@ type PromptRow = {
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
-  category: PromptRecord["category"];
+  categories: { category: PromptRecord["categories"][number] }[];
   author: PromptRecord["author"];
 };
 
@@ -28,19 +28,21 @@ function toRecord(row: PromptRow): PromptRecord {
     description: row.description,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    category: row.category,
+    categories: row.categories.map(({ category }) => category).sort((a, b) => a.name.localeCompare(b.name)),
     author: row.author,
   };
 }
 
+const linkCategories = (categoryIds: string[]) => categoryIds.map((categoryId) => ({ categoryId }));
+
 export class PrismaPromptRepository implements PromptRepository {
   constructor(private readonly client: PrismaClient) {}
 
-  async list({ categoryId, q, offset, limit }: PromptListCriteria) {
+  async list({ categoryIds, q, offset, limit }: PromptListCriteria) {
     // Prisma parameterizes the value but SQL Server still interprets LIKE wildcards.
     const search = q?.replace(/[%_\[]/g, (character) => `[${character}]`);
     const where = {
-      ...(categoryId ? { categoryId } : {}),
+      ...(categoryIds.length ? { categories: { some: { categoryId: { in: categoryIds } } } } : {}),
       ...(q ? {
         OR: [
           { title: { contains: search } },
@@ -74,8 +76,8 @@ export class PrismaPromptRepository implements PromptRepository {
           title: data.title,
           content: data.content,
           description: data.description ?? null,
-          categoryId: data.categoryId,
           authorOid: data.authorOid,
+          categories: { create: linkCategories(data.categoryIds) },
         },
         include,
       });
@@ -87,17 +89,18 @@ export class PrismaPromptRepository implements PromptRepository {
 
   async update(id: string, data: PromptData) {
     try {
-      const row = await this.client.prompt.update({
-        where: { id },
-        data: {
-          title: data.title,
-          content: data.content,
-          description: data.description ?? null,
-          categoryId: data.categoryId,
-        },
-        include,
+      // Explicit delete-then-insert: the nested deleteMany/create order is not guaranteed by Prisma.
+      return await this.client.$transaction(async (tx) => {
+        if (!(await tx.prompt.findUnique({ where: { id }, select: { id: true } }))) return null;
+        await tx.promptCategory.deleteMany({ where: { promptId: id } });
+        await tx.promptCategory.createMany({ data: data.categoryIds.map((categoryId) => ({ promptId: id, categoryId })) });
+        const row = await tx.prompt.update({
+          where: { id },
+          data: { title: data.title, content: data.content, description: data.description ?? null },
+          include,
+        });
+        return toRecord(row);
       });
-      return toRecord(row);
     } catch (error) {
       const mapped = mapPrismaError(error);
       if (mapped instanceof NotFoundError) return null;

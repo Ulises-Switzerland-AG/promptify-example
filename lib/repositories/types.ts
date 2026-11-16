@@ -19,7 +19,8 @@ export type PromptRecord = {
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
-  category: CategoryRecord;
+  // Sorted by name.
+  categories: CategoryRecord[];
   author: { oid: string; displayName: string };
 };
 
@@ -27,11 +28,12 @@ export type PromptData = {
   title: string;
   content: string;
   description?: string;
-  categoryId: string;
+  categoryIds: string[];
 };
 
 export type PromptListCriteria = {
-  categoryId?: string;
+  // Prompts having any of these Categories; empty means no filter.
+  categoryIds: string[];
   q?: string;
   offset: number;
   limit: number;
@@ -41,6 +43,7 @@ export type PromptListCriteria = {
 export interface CategoryRepository {
   list(): Promise<CategoryRecord[]>;
   findById(id: string): Promise<CategoryRecord | null>;
+  findByIds(ids: string[]): Promise<CategoryRecord[]>;
   create(data: { name: string; color: string }): Promise<CategoryRecord>;
   update(id: string, data: { name: string; color: string }): Promise<CategoryRecord | null>;
   // Atomic: a Category with Prompts is never deleted.

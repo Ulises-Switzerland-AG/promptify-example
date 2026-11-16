@@ -16,6 +16,10 @@ export class PrismaCategoryRepository implements CategoryRepository {
     return this.client.category.findUnique({ where: { id } });
   }
 
+  async findByIds(ids: string[]) {
+    return this.client.category.findMany({ where: { id: { in: ids } } });
+  }
+
   async create(data: { name: string; color: string }) {
     try {
       return await this.client.category.create({ data });
@@ -40,7 +44,7 @@ export class PrismaCategoryRepository implements CategoryRepository {
         async (tx) => {
           const category = await tx.category.findUnique({ where: { id } });
           if (!category) return "not_found" as const;
-          if ((await tx.prompt.count({ where: { categoryId: id } })) > 0) return "has_prompts" as const;
+          if ((await tx.promptCategory.count({ where: { categoryId: id } })) > 0) return "has_prompts" as const;
           await tx.category.delete({ where: { id } });
           return "deleted" as const;
         },

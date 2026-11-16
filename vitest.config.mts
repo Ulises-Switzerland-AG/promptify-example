@@ -14,5 +14,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Page tests import whole route modules; the first one is slow when many workers start at once.
+    testTimeout: 15_000,
   },
 });

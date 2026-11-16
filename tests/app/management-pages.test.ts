@@ -20,8 +20,13 @@ describe("Management pages", () => {
     ] });
     queries.getPrompt.mockResolvedValue({ ok: true, data: {
       id: "id", title: "Título existente", description: "Descripción existente", content: "<b>Texto literal</b>",
-      categoryId: "cat", canEdit: true, canDelete: true,
+      categoryIds: ["cat", "legal"], canEdit: true, canDelete: true,
     } });
+    queries.listCategories.mockResolvedValue({ ok: true, data: [
+      { id: "cat", name: "Análisis", color: "#123456" },
+      { id: "legal", name: "Legal", color: "#654321" },
+      { id: "otra", name: "Otra", color: "#111111" },
+    ] });
   });
 
   it("renders Category creation, editing and removal plus role management", async () => {
@@ -57,6 +62,13 @@ describe("Management pages", () => {
     expect(html).toContain("&lt;b&gt;Texto literal&lt;/b&gt;");
     expect(html).toContain("Guardar cambios");
     expect(html).toContain('/prompts/id?from=%2F%3Fq%3Dinforme');
+  });
+
+  it("checks the Categories the Prompt already has when editing", async () => {
+    const { default: Edit } = await import("@/app/prompts/[id]/edit/page");
+    const html = renderToStaticMarkup(await Edit({ params: Promise.resolve({ id: "id" }) }));
+    expect(html.match(/checked=""/g)).toHaveLength(2);
+    expect(html).toContain("2 de 5");
   });
 
   it("blocks editing by anyone other than the Author", async () => {

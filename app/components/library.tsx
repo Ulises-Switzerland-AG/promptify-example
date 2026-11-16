@@ -2,26 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import type { CategoryDto, MeDto, PromptListDto } from "@/lib/dto/dtos";
+import { MAX_FILTER_CATEGORIES } from "@/lib/schemas/category-limits";
 import { Brand } from "./brand";
+import { CategoryBadges } from "./category-badges";
+import { categoryHeading, libraryUrl, toggleCategory } from "./library-url";
 import { LogoutLink } from "./logout-link";
 import { syncSearchDraft, type SearchDraft } from "./search-draft";
 import { Icon } from "./ui-icon";
 
-function libraryUrl(q: string, categoryId = "", page = 1) {
-  const params = new URLSearchParams();
-  if (q) params.set("q", q);
-  if (categoryId) params.set("categoryId", categoryId);
-  if (page > 1) params.set("page", String(page));
-  return params.size ? `/?${params}` : "/";
-}
+const VISIBLE_BADGES = 3;
 
-export function Library({ me, categories, prompts, q, categoryId }: {
-  me: MeDto; categories: CategoryDto[]; prompts: PromptListDto; q: string; categoryId: string;
+export function Library({ me, categories, prompts, q, categoryIds }: {
+  me: MeDto; categories: CategoryDto[]; prompts: PromptListDto; q: string; categoryIds: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Checkboxes answer immediately; the URL (and with it `categoryIds`) catches up when navigation ends.
+  const [selectedIds, setSelectedIds] = useOptimistic(categoryIds);
   const [searchState, setSearchState] = useState<SearchDraft>({ draft: q, appliedQ: q });
   const synced = syncSearchDraft(searchState, q);
   if (synced !== searchState) setSearchState(synced);
@@ -29,15 +28,23 @@ export function Library({ me, categories, prompts, q, categoryId }: {
   // Category changes apply the text visible in the search box, not a stale applied search.
   const visibleQ = draft.trim();
   const navigate = (href: string) => {
-    setSearchState({ draft: new URL(href, "http://x").searchParams.get("q") ?? "", appliedQ: q });
-    startTransition(() => router.push(href, { scroll: false }));
+    const target = new URL(href, "http://x").searchParams;
+    setSearchState({ draft: target.get("q") ?? "", appliedQ: q });
+    startTransition(() => {
+      setSelectedIds(target.getAll("categoryId"));
+      router.push(href, { scroll: false });
+    });
   };
-  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const toggle = (id: string) => {
+    navigate(libraryUrl({ q: visibleQ, categoryIds: toggleCategory(selectedIds, id), page: 1 }));
+  };
+  const selectedCategories = categories.filter((category) => selectedIds.includes(category.id));
+  const selectionFull = selectedIds.length >= MAX_FILTER_CATEGORIES;
   const { items, total, page, pageSize } = prompts;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const filtered = Boolean(q || categoryId);
+  const filtered = Boolean(q || categoryIds.length);
   const initials = me.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("");
-  const origin = libraryUrl(q, categoryId, page);
+  const origin = libraryUrl({ q, categoryIds, page });
   const creationHref = `/prompts/new?from=${encodeURIComponent(origin)}`;
   const filterLink = (href: string, children: ReactNode, className: string, selected = false) => (
     <Link href={href} scroll={false} className={className} aria-current={selected ? "page" : undefined}
@@ -45,6 +52,15 @@ export function Library({ me, categories, prompts, q, categoryId }: {
       {children}
     </Link>
   );
+  const categoryCheckbox = (category: CategoryDto, className: string) => {
+    const checked = selectedIds.includes(category.id);
+    return (
+      <label key={category.id} className={`${className} ${checked ? "is-selected" : ""}`}>
+        <input type="checkbox" checked={checked} disabled={!checked && selectionFull} onChange={() => toggle(category.id)} />
+        <span className="category-dot" style={{ backgroundColor: category.color }} />{category.name}
+      </label>
+    );
+  };
 
   return (
     <div className="library-app">
@@ -57,12 +73,8 @@ export function Library({ me, categories, prompts, q, categoryId }: {
           </nav>
           <nav className="category-nav" aria-label="Filtrar por Categoría">
             <h2>Categorías</h2>
-            {filterLink(libraryUrl(visibleQ), <><span className="all-categories-dot" /> Todas las Categorías</>, `category-link ${!categoryId ? "is-selected" : ""}`, !categoryId)}
-            {categories.map((category) => (
-              <div key={category.id}>
-                {filterLink(libraryUrl(visibleQ, category.id), <><span className="category-dot" style={{ backgroundColor: category.color }} />{category.name}</>, `category-link ${category.id === categoryId ? "is-selected" : ""}`, category.id === categoryId)}
-              </div>
-            ))}
+            {filterLink(libraryUrl({ q: visibleQ, categoryIds: [], page: 1 }), <><span className="all-categories-dot" /> Todas las Categorías</>, `category-link ${!selectedIds.length ? "is-selected" : ""}`, !selectedIds.length)}
+            {categories.map((category) => categoryCheckbox(category, "category-link"))}
             {!categories.length && <p className="sidebar-hint">Aún no hay Categorías.</p>}
           </nav>
           {me.isAdministrator && <Link href="/administration" className="administration-link"><Icon name="shield" /> Administración</Link>}
@@ -92,7 +104,7 @@ export function Library({ me, categories, prompts, q, categoryId }: {
             <form action="/" method="get" className="search-form" role="search" onSubmit={(event) => {
               event.preventDefault();
               const form = new FormData(event.currentTarget);
-              navigate(libraryUrl(String(form.get("q") ?? "").trim(), categoryId));
+              navigate(libraryUrl({ q: String(form.get("q") ?? "").trim(), categoryIds: selectedIds, page: 1 }));
             }}>
               <label htmlFor="prompt-search" className="sr-only">Buscar Prompts</label>
               <Icon name="search" />
@@ -100,36 +112,44 @@ export function Library({ me, categories, prompts, q, categoryId }: {
                 onChange={(event) => setSearchState({ draft: event.target.value, appliedQ: q })} placeholder="Buscar en título, descripción y contenido" />
               <button type="submit" className="button search-button" disabled={pending}>Buscar</button>
             </form>
-            <div className="mobile-category-form">
-              <label htmlFor="mobile-category">Categoría</label>
-              <select id="mobile-category" value={categoryId} disabled={pending} onChange={(event) => navigate(libraryUrl(visibleQ, event.target.value))}>
-                <option value="">Todas las Categorías</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </div>
+            <details className="mobile-category-filter">
+              <summary>{selectedIds.length ? `Categorías (${selectedIds.length})` : "Categorías"}</summary>
+              <div className="mobile-category-options">
+                {categories.map((category) => categoryCheckbox(category, "mobile-category-option"))}
+              </div>
+            </details>
           </div>
           <section className="prompt-section" aria-labelledby="prompt-list-title" aria-busy={pending}>
             <div className="section-heading">
               <div className="section-title">
-                <h2 id="prompt-list-title">{q ? "Resultados de búsqueda" : selectedCategory?.name ?? "Todos los Prompts"}</h2>
+                <h2 id="prompt-list-title">{q ? "Resultados de búsqueda" : categoryHeading(categoryIds, categories)}</h2>
                 <span className="result-count">{total}</span>
               </div>
             </div>
             <p className="filter-status" role="status">{pending ? "Actualizando Prompts…" : `${total} ${total === 1 ? "Prompt disponible" : "Prompts disponibles"}`}</p>
             {filtered && <div className="active-filters">
-              <p>{q && <>Búsqueda: <strong>“{q}”</strong></>}{q && selectedCategory && " · "}{selectedCategory?.name}</p>
+              <p>{q && <>Búsqueda: <strong>“{q}”</strong></>}</p>
+              {selectedCategories.length > 0 && <ul className="filter-chips" aria-label="Categorías seleccionadas">
+                {selectedCategories.map((category) => (
+                  <li key={category.id}>
+                    <button type="button" className="filter-chip" aria-label={`Quitar filtro ${category.name}`} onClick={() => toggle(category.id)}>
+                      <span className="category-dot" style={{ backgroundColor: category.color }} />{category.name}<span aria-hidden="true"> ✕</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>}
               {filterLink("/", "Limpiar filtros", "text-link")}
             </div>}
             {items.length > 0 ? (
               <div className="prompt-list">
-                <div className="list-columns" aria-hidden="true"><span>Prompt</span><span>Categoría</span><span>Autor</span><span>Compartido</span></div>
+                <div className="list-columns" aria-hidden="true"><span>Prompt</span><span>Categorías</span><span>Autor</span><span>Compartido</span></div>
                 {items.map((prompt) => (
                   <article key={prompt.id} className="prompt-row">
                     <div className="prompt-summary">
                       <h3><Link scroll={false} href={`/prompts/${prompt.id}?from=${encodeURIComponent(origin)}`}>{prompt.title}</Link></h3>
                       {prompt.description && <p className="prompt-description">{prompt.description}</p>}
                     </div>
-                    <span className="category-badge"><span className="category-dot" style={{ backgroundColor: prompt.category.color }} />{prompt.category.name}</span>
+                    <CategoryBadges categories={prompt.categories} limit={VISIBLE_BADGES} />
                     <span className="author-name">{prompt.authorName}</span>
                     <time dateTime={prompt.createdAt}>{new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(prompt.createdAt))}</time>
                   </article>
@@ -144,9 +164,9 @@ export function Library({ me, categories, prompts, q, categoryId }: {
             {(pageCount > 1 || page > 1) && <nav className="pagination" aria-label="Paginación">
               <span>{total ? `${Math.min((page - 1) * pageSize + 1, total + 1) > total ? 0 : (page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} de ${total} Prompts` : "0 Prompts"}</span>
               <div>
-                {page > 1 ? filterLink(libraryUrl(q, categoryId, page - 1), <><Icon name="back" /> Anterior</>, "button button-secondary") : <span className="button button-secondary" aria-disabled="true">Anterior</span>}
+                {page > 1 ? filterLink(libraryUrl({ q, categoryIds, page: page - 1 }), <><Icon name="back" /> Anterior</>, "button button-secondary") : <span className="button button-secondary" aria-disabled="true">Anterior</span>}
                 <span className="page-number" aria-current="page">{page}</span>
-                {page < pageCount ? filterLink(libraryUrl(q, categoryId, page + 1), <>Siguiente <Icon name="arrow" /></>, "button button-secondary") : <span className="button button-secondary" aria-disabled="true">Siguiente</span>}
+                {page < pageCount ? filterLink(libraryUrl({ q, categoryIds, page: page + 1 }), <>Siguiente <Icon name="arrow" /></>, "button button-secondary") : <span className="button button-secondary" aria-disabled="true">Siguiente</span>}
               </div>
             </nav>}
           </section>

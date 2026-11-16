@@ -14,9 +14,11 @@ const bob = { oid: "b0000000-0000-4000-8000-000000000002", name: "Bob" };
 const root = { oid: "c0000000-0000-4000-8000-000000000003", name: "Root" };
 const missingId = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 
-function form(fields: Record<string, string>) {
+function form(fields: Record<string, string | string[]>) {
   const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) data.append(key, value);
+  for (const [key, value] of Object.entries(fields)) {
+    for (const item of Array.isArray(value) ? value : [value]) data.append(key, item);
+  }
   return data;
 }
 
@@ -98,6 +100,33 @@ describe("actions", () => {
       expect(await actions.createPrompt(data)).toEqual({ ok: false, error: "Invalid input" });
     });
 
+    it("reads a repeated categoryId field as the list of Categories", async () => {
+      const second = repos.db.seedCategory({ name: "Second" });
+
+      const result = await actions.createPrompt(form({ title: "T", content: "C", categoryId: [categoryId, second.id] }));
+
+      expect(result.ok).toBe(true);
+      expect([...repos.db.prompts.values()][0].categoryIds).toEqual([categoryId, second.id]);
+    });
+
+    it("rejects a Prompt without Categories or with more than five", async () => {
+      const many = Array.from({ length: 6 }, () => repos.db.seedCategory().id);
+
+      expect(await actions.createPrompt(form({ title: "T", content: "C" }))).toEqual({ ok: false, error: "Invalid input" });
+      expect(await actions.createPrompt(form({ title: "T", content: "C", categoryId: many }))).toEqual({
+        ok: false,
+        error: "Invalid input",
+      });
+      expect(repos.db.prompts.size).toBe(0);
+    });
+
+    it("rejects a categoryId file upload", async () => {
+      const data = form({ title: "T", content: "C" });
+      data.append("categoryId", new File(["x"], "x.txt"));
+
+      expect(await actions.createPrompt(data)).toEqual({ ok: false, error: "Invalid input" });
+    });
+
     it("rejects file uploads in place of text", async () => {
       const data = form({ content: "C", categoryId });
       data.append("title", new File(["x"], "x.txt"));
@@ -141,7 +170,7 @@ describe("actions", () => {
 
     it("lets the Author edit", async () => {
       const stored = repos.db.seedUser({ oid: ada.oid, displayName: ada.name });
-      const prompt = repos.db.seedPrompt({ categoryId, authorOid: stored.oid, title: "Old" });
+      const prompt = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: stored.oid, title: "Old" });
 
       const result = await actions.updatePrompt(prompt.id, form({ title: "New", content: "C", categoryId }));
 
@@ -151,7 +180,7 @@ describe("actions", () => {
 
     it("blocks editing someone else's Prompt by id (IDOR)", async () => {
       repos.db.seedUser({ oid: bob.oid, displayName: bob.name });
-      const prompt = repos.db.seedPrompt({ categoryId, authorOid: bob.oid, title: "Bob's" });
+      const prompt = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: bob.oid, title: "Bob's" });
 
       const result = await actions.updatePrompt(prompt.id, form({ title: "Mine now", content: "C", categoryId }));
 
@@ -162,7 +191,7 @@ describe("actions", () => {
 
     it("blocks deleting someone else's Prompt by id (IDOR)", async () => {
       repos.db.seedUser({ oid: bob.oid, displayName: bob.name });
-      const prompt = repos.db.seedPrompt({ categoryId, authorOid: bob.oid });
+      const prompt = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: bob.oid });
 
       const result = await actions.deletePrompt(prompt.id);
 
@@ -173,7 +202,7 @@ describe("actions", () => {
     it("lets an Administrator delete someone else's Prompt", async () => {
       principal = root;
       repos.db.seedUser({ oid: bob.oid, displayName: bob.name });
-      const prompt = repos.db.seedPrompt({ categoryId, authorOid: bob.oid });
+      const prompt = repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: bob.oid });
 
       const result = await actions.deletePrompt(prompt.id);
 
@@ -214,7 +243,7 @@ describe("actions", () => {
     it("translates Conflict when the Category still has Prompts", async () => {
       principal = root;
       repos.db.seedUser({ oid: bob.oid, displayName: bob.name });
-      repos.db.seedPrompt({ categoryId, authorOid: bob.oid });
+      repos.db.seedPrompt({ categoryIds: [categoryId], authorOid: bob.oid });
 
       expect(await actions.deleteCategory(categoryId)).toEqual({ ok: false, error: "Category has Prompts" });
     });
