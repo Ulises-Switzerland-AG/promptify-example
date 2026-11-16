@@ -3,21 +3,28 @@
   Sets up the local Promptify environment against an already installed SQL Server (Express or not).
 
 .DESCRIPTION
-  1. Checks that sqlcmd, node/npm and the SQL Server instance are reachable.
-  2. Creates the database and the two least-privilege logins (promptify_migrator = DDL, promptify_app = CRUD).
-  3. Creates/updates .env (existing values and passwords are preserved; missing ones are generated).
-  4. Applies the Prisma migrations and seeds the first Administrator.
-  5. Loads test data (Users, Categories and Prompts).
+  1. Checks that sqlcmd and node/npm are installed.
+  2. For a SQL Server installed on this machine, makes sure it is reachable by the app: TCP/IP enabled on a static port,
+     mixed-mode authentication (the app uses SQL logins) and the service running. Changes are applied only when
+     something is missing, which requires running the script as Administrator. SQL Server Browser is not needed.
+  3. Creates the database and the two least-privilege logins (promptify_migrator = DDL, promptify_app = CRUD).
+  4. Creates/updates .env (existing values and passwords are preserved; missing ones are generated).
+  5. Applies the Prisma migrations and seeds the first Administrator.
+  6. Loads test data (Users, Categories and Prompts).
   The script is idempotent: it can be run again at any time.
 
 .PARAMETER Server
   Host of the SQL Server. Default: localhost.
 
 .PARAMETER Port
-  TCP port. Default: 1433. Ignored when -Instance is set.
+  TCP port. Default: 1433. Ignored when a local SQL Server instance is detected (its static port is used) or -Instance is set.
 
 .PARAMETER Instance
-  Named instance (e.g. SQLEXPRESS). When set, the instance name is used instead of the port.
+  Named instance (e.g. SQLEXPRESS). Detected automatically when this machine has a single instance and no -Port is given.
+  For a local instance the script connects through its static TCP port; for a remote server the instance name is used.
+
+.PARAMETER SkipSqlServerConfig
+  Do not inspect or change the configuration of the local SQL Server.
 
 .PARAMETER Database
   Application database name. Default: promptify.
@@ -44,6 +51,7 @@ param(
   [string]$Database = "promptify",
   [string]$SqlAdminUser,
   [string]$SqlAdminPassword,
+  [switch]$SkipSqlServerConfig=$false,
   [switch]$SkipTestData=$false,
   [switch]$Integration=$true
 )
@@ -97,8 +105,68 @@ function New-DatabaseUrl($login, $password, $databaseName) {
   "sqlserver://$location;database=$databaseName;user=$login;password=$password;encrypt=true;trustServerCertificate=true"
 }
 
+function Test-LocalServer {
+  $Server -in @("localhost", ".", "(local)", "127.0.0.1", $env:COMPUTERNAME)
+}
+
+function Assert-Administrator($reason) {
+  $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+  if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw "The local SQL Server needs changes ($reason). Run this script again from a terminal opened as Administrator."
+  }
+}
+
+# SQL Server instances installed on this machine, read from the registry.
+function Get-LocalSqlInstances {
+  $key = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL"
+  if (-not (Test-Path $key)) { return @() }
+  $names = (Get-ItemProperty $key).PSObject.Properties | Where-Object { $_.Name -notlike "PS*" }
+  @($names | ForEach-Object {
+    $root = "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($_.Value)\MSSQLServer"
+    [pscustomobject]@{
+      Name = $_.Name
+      Root = $root
+      Service = if ($_.Name -eq "MSSQLSERVER") { "MSSQLSERVER" } else { "MSSQL`$$($_.Name)" }
+      StaticPort = (Get-ItemProperty "$root\SuperSocketNetLib\Tcp\IPAll").TcpPort
+    }
+  })
+}
+
+# Makes a local instance usable by the app (TCP/IP on a static port, mixed mode, running) and returns its TCP port.
+function Initialize-LocalSqlInstance($instance, [int]$defaultPort, $otherInstances) {
+  $tcpKey = "$($instance.Root)\SuperSocketNetLib\Tcp"
+  $ipAllKey = "$tcpKey\IPAll"
+  $port = $instance.StaticPort
+  $needsPort = -not $port
+  if ($needsPort) {
+    $port = $defaultPort
+    if ($otherInstances | Where-Object { $_.StaticPort -eq "$port" }) {
+      throw "Instance '$($instance.Name)' has no static TCP port and port $port is used by another instance. Configure a free port in SQL Server Configuration Manager."
+    }
+  }
+
+  $changes = @()
+  if ((Get-ItemProperty $tcpKey).Enabled -ne 1) { $changes += "enable TCP/IP" }
+  if ($needsPort) { $changes += "set static TCP port $port" }
+  if ((Get-ItemProperty $instance.Root).LoginMode -ne 2) { $changes += "enable mixed-mode authentication" }
+  $needsRestart = $changes.Count -gt 0
+  $service = Get-Service $instance.Service
+  $needsStart = $service.Status -ne "Running"
+
+  if ($needsRestart -or $needsStart) {
+    $summary = (@($changes) + $(if ($needsStart) { "start service" })) -join ", "
+    Assert-Administrator $summary
+    Write-Host "Configuring SQL Server instance '$($instance.Name)': $summary."
+    Set-ItemProperty $tcpKey -Name Enabled -Value 1
+    Set-ItemProperty $ipAllKey -Name TcpPort -Value "$port"
+    Set-ItemProperty $ipAllKey -Name TcpDynamicPorts -Value ""
+    Set-ItemProperty $instance.Root -Name LoginMode -Value 2
+    if ($needsRestart -and -not $needsStart) { Restart-Service $instance.Service -Force } else { Start-Service $instance.Service }
+  }
+  [int]$port
+}
+
 Set-Location $repoRoot
-$sqlTarget = if ($Instance) { "$Server\$Instance" } else { "$Server,$Port" }
 $adminLogin = if ($SqlAdminUser) { $SqlAdminUser } else { $null }
 
 Write-Step "Checking prerequisites"
@@ -107,6 +175,27 @@ Assert-Command node "Install Node.js."
 Assert-Command npm "Install Node.js."
 if ($Database -notmatch '^[A-Za-z0-9_]+$') { throw "Database name may only contain letters, digits and underscores." }
 if ($Integration -and $Database -ne "promptify") { throw "-Integration requires -Database promptify (tests/integration/provision.sql is fixed)." }
+
+if (-not $SkipSqlServerConfig -and (Test-LocalServer)) {
+  $instances = @(Get-LocalSqlInstances)
+  $selected = $null
+  if ($Instance) {
+    $selected = $instances | Where-Object { $_.Name -eq $Instance }
+  } elseif (-not $PSBoundParameters.ContainsKey("Port")) {
+    $selected = $instances | Where-Object { $_.Name -eq "MSSQLSERVER" }
+    if (-not $selected -and $instances.Count -eq 1) { $selected = $instances[0] }
+    if (-not $selected -and $instances.Count -gt 1) {
+      throw "Several SQL Server instances found ($($instances.Name -join ', ')). Pass -Instance <name>."
+    }
+  }
+  if ($selected) {
+    Write-Step "Checking local SQL Server instance '$($selected.Name)'"
+    $others = @($instances | Where-Object { $_.Name -ne $selected.Name })
+    $Port = Initialize-LocalSqlInstance $selected $Port $others
+    $Instance = $null
+  }
+}
+$sqlTarget = if ($Instance) { "$Server\$Instance" } else { "$Server,$Port" }
 
 $probe = Join-Path $env:TEMP "promptify-probe.sql"
 Set-Content -Path $probe -Value "SELECT @@VERSION;" -Encoding ASCII
