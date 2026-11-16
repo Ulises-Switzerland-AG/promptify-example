@@ -12,7 +12,8 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx --conditions=react-server prisma/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env --conditions=react-server prisma/seed.ts",
+    "setup:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local.ps1"
   },
   "dependencies": {
     "@microsoft/opentelemetry": "^1.5.0",

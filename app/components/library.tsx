@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import type { CategoryDto, MeDto, PromptListDto } from "@/lib/dto/dtos";
 import { Brand } from "./brand";
 import { LogoutLink } from "./logout-link";
+import { syncSearchDraft, type SearchDraft } from "./search-draft";
 import { Icon } from "./ui-icon";
 
 function libraryUrl(q: string, categoryId = "", page = 1) {
@@ -21,7 +22,16 @@ export function Library({ me, categories, prompts, q, categoryId }: {
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const navigate = (href: string) => startTransition(() => router.push(href, { scroll: false }));
+  const [searchState, setSearchState] = useState<SearchDraft>({ draft: q, appliedQ: q });
+  const synced = syncSearchDraft(searchState, q);
+  if (synced !== searchState) setSearchState(synced);
+  const { draft } = synced;
+  // Category changes apply the text visible in the search box, not a stale applied search.
+  const visibleQ = draft.trim();
+  const navigate = (href: string) => {
+    setSearchState({ draft: new URL(href, "http://x").searchParams.get("q") ?? "", appliedQ: q });
+    startTransition(() => router.push(href, { scroll: false }));
+  };
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const { items, total, page, pageSize } = prompts;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -47,10 +57,10 @@ export function Library({ me, categories, prompts, q, categoryId }: {
           </nav>
           <nav className="category-nav" aria-label="Filtrar por Categoría">
             <h2>Categorías</h2>
-            {filterLink(libraryUrl(q), <><span className="all-categories-dot" /> Todas las Categorías</>, `category-link ${!categoryId ? "is-selected" : ""}`, !categoryId)}
+            {filterLink(libraryUrl(visibleQ), <><span className="all-categories-dot" /> Todas las Categorías</>, `category-link ${!categoryId ? "is-selected" : ""}`, !categoryId)}
             {categories.map((category) => (
               <div key={category.id}>
-                {filterLink(libraryUrl(q, category.id), <><span className="category-dot" style={{ backgroundColor: category.color }} />{category.name}</>, `category-link ${category.id === categoryId ? "is-selected" : ""}`, category.id === categoryId)}
+                {filterLink(libraryUrl(visibleQ, category.id), <><span className="category-dot" style={{ backgroundColor: category.color }} />{category.name}</>, `category-link ${category.id === categoryId ? "is-selected" : ""}`, category.id === categoryId)}
               </div>
             ))}
             {!categories.length && <p className="sidebar-hint">Aún no hay Categorías.</p>}
@@ -86,12 +96,13 @@ export function Library({ me, categories, prompts, q, categoryId }: {
             }}>
               <label htmlFor="prompt-search" className="sr-only">Buscar Prompts</label>
               <Icon name="search" />
-              <input key={q} id="prompt-search" name="q" type="search" maxLength={200} defaultValue={q} placeholder="Buscar en título, descripción y contenido" />
+              <input id="prompt-search" name="q" type="search" maxLength={200} value={draft}
+                onChange={(event) => setSearchState({ draft: event.target.value, appliedQ: q })} placeholder="Buscar en título, descripción y contenido" />
               <button type="submit" className="button search-button" disabled={pending}>Buscar</button>
             </form>
             <div className="mobile-category-form">
               <label htmlFor="mobile-category">Categoría</label>
-              <select id="mobile-category" value={categoryId} disabled={pending} onChange={(event) => navigate(libraryUrl(q, event.target.value))}>
+              <select id="mobile-category" value={categoryId} disabled={pending} onChange={(event) => navigate(libraryUrl(visibleQ, event.target.value))}>
                 <option value="">Todas las Categorías</option>
                 {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
