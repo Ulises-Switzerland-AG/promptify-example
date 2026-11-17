@@ -25,7 +25,7 @@ export async function PromptCreator({ searchParams, modal = false }: Pick<Prompt
     {!modal && <h1>Tu próximo Prompt puede ayudar a alguien.</h1>}
     <p className="detail-description">Comparte lo que te funciona. Tú serás su Autor y podrás editarlo.</p>
     {categories.data.length > 0
-      ? <PromptForm categories={categories.data} returnHref={libraryHref} />
+      ? <PromptForm categories={categories.data} returnHref={libraryHref} modal={modal} />
       : <section className="empty-state"><h2>Necesitamos una Categoría para empezar</h2><p>Pide a un Administrador que cree una Categoría antes de publicar tu primer Prompt.</p><Link className="button button-secondary" href={libraryHref} scroll={false}>Volver a la biblioteca</Link></section>}
   </>;
   if (modal) return <PromptModal title="Crear Prompt" libraryHref={libraryHref}>{content}</PromptModal>;

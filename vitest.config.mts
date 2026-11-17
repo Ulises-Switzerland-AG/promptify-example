@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Playwright specs (`*.spec.ts`) run with `npm run test:e2e`.
+    exclude: ["tests/e2e/**", "node_modules/**"],
     // Page tests import whole route modules; the first one is slow when many workers start at once.
     testTimeout: 15_000,
   },

@@ -7,7 +7,7 @@
   2. For a SQL Server installed on this machine, makes sure it is reachable by the app: TCP/IP enabled on a static port,
      mixed-mode authentication (the app uses SQL logins) and the service running. Changes are applied only when
      something is missing, which requires running the script as Administrator. SQL Server Browser is not needed.
-  3. Creates the database and the two least-privilege logins (promptify_migrator = DDL, promptify_app = CRUD).
+  3. Creates the application, integration and e2e databases and the two least-privilege logins (promptify_migrator = DDL, promptify_app = CRUD).
   4. Creates/updates .env (existing values and passwords are preserved; missing ones are generated).
   5. Applies the Prisma migrations and seeds the first Administrator.
   6. Loads test data (Users, Categories and Prompts).
@@ -38,6 +38,9 @@
 .PARAMETER Integration
   Also provision the throwaway database used by `npm run test:integration` (requires -Database promptify).
 
+.PARAMETER E2e
+  Also provision the throwaway database used by `npm run test:e2e` (requires -Database promptify).
+
 .EXAMPLE
   .\scripts\setup-local.ps1
   .\scripts\setup-local.ps1 -Instance SQLEXPRESS
@@ -53,7 +56,8 @@ param(
   [string]$SqlAdminPassword,
   [switch]$SkipSqlServerConfig=$false,
   [switch]$SkipTestData=$false,
-  [switch]$Integration=$true
+  [switch]$Integration=$true,
+  [switch]$E2e=$true
 )
 
 $ErrorActionPreference = "Stop"
@@ -175,6 +179,7 @@ Assert-Command node "Install Node.js."
 Assert-Command npm "Install Node.js."
 if ($Database -notmatch '^[A-Za-z0-9_]+$') { throw "Database name may only contain letters, digits and underscores." }
 if ($Integration -and $Database -ne "promptify") { throw "-Integration requires -Database promptify (tests/integration/provision.sql is fixed)." }
+if ($E2e -and $Database -ne "promptify") { throw "-E2e requires -Database promptify (tests/e2e/provision.sql is fixed)." }
 
 if (-not $SkipSqlServerConfig -and (Test-LocalServer)) {
   $instances = @(Get-LocalSqlInstances)
@@ -242,6 +247,11 @@ Invoke-Sql $adminLogin $SqlAdminPassword (Join-Path $sqlDir "provision.sql") @{
 if ($Integration) {
   Write-Step "Provisioning integration database 'promptify_integration'"
   Invoke-Sql $adminLogin $SqlAdminPassword (Join-Path $repoRoot "tests\integration\provision.sql") @{}
+}
+
+if ($E2e) {
+  Write-Step "Provisioning e2e database 'promptify_e2e'"
+  Invoke-Sql $adminLogin $SqlAdminPassword (Join-Path $repoRoot "tests\e2e\provision.sql") @{}
 }
 
 Write-Step "Applying migrations"

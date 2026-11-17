@@ -46,3 +46,7 @@ next-env.d.ts
 
 # azd local environments
 .azure
+
+# Playwright output
+tests/e2e/.report/
+tests/e2e/.results/

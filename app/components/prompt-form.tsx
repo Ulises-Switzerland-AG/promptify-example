@@ -9,8 +9,8 @@ import { actionErrorMessage } from "./read-error";
 import { CategoryPicker } from "./category-picker";
 import { categorySelectionError } from "./category-selection";
 
-export function PromptForm({ categories, prompt, returnHref = "/" }: {
-  categories: CategoryDto[]; prompt?: PromptDetailDto; returnHref?: string;
+export function PromptForm({ categories, prompt, returnHref = "/", modal = false }: {
+  categories: CategoryDto[]; prompt?: PromptDetailDto; returnHref?: string; modal?: boolean;
 }) {
   const router = useRouter();
   const [values, setValues] = useState({
@@ -27,7 +27,10 @@ export function PromptForm({ categories, prompt, returnHref = "/" }: {
       return actionErrorMessage(result.error);
     }
     const destination = prompt ? returnHref : `/prompts/${result.data.id}?from=${encodeURIComponent(returnHref)}`;
-    router.replace(destination, { scroll: false });
+    // A client navigation to the Prompt URL is intercepted by the `@modal` route, which would open it as a modal over this
+    // full page's form. Only the modal flow wants that; a full page leaves with a regular navigation.
+    if (modal) router.replace(destination, { scroll: false });
+    else window.location.replace(destination);
     return null;
   }, null);
 

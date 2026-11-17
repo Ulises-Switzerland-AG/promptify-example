@@ -28,7 +28,7 @@ export async function PromptEditor({ params, searchParams, modal = false }: Prom
   const content = <>
     {!modal && <h1>Editar Prompt</h1>}
     <p className="detail-description">Los cambios serán visibles para todos los Usuarios.</p>
-    <PromptForm categories={categories.data} prompt={result.data} returnHref={returnHref} />
+    <PromptForm categories={categories.data} prompt={result.data} returnHref={returnHref} modal={modal} />
   </>;
   if (modal) return <PromptModal title="Editar Prompt" libraryHref={libraryHref}>{content}</PromptModal>;
   return <div className="supporting-page">
